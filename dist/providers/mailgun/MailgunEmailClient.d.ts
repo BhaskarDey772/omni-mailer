@@ -7,7 +7,6 @@ export declare class MailgunEmailClient extends BaseEmailClient {
     constructor(config: MailgunConfig);
     send(emailData: EmailData): Promise<SendResult>;
     sendTemplated(emailData: TemplatedEmailData): Promise<SendResult>;
-    /** Override bulk send to use Mailgun's batch sending (up to 1000 per request) */
     sendBulk(emails: EmailData[], options?: BulkSendOptions): Promise<BulkSendResult>;
 }
 //# sourceMappingURL=MailgunEmailClient.d.ts.map

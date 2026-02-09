@@ -1,31 +1,23 @@
-// ── Provider Clients ────────────────────────────────────
 export { SESEmailClient } from './providers/ses/SESEmailClient';
 export { MailgunEmailClient } from './providers/mailgun/MailgunEmailClient';
 export { SendGridEmailClient } from './providers/sendgrid/SendGridEmailClient';
 export { MailchimpEmailClient } from './providers/mailchimp/MailchimpEmailClient';
 export { ZohoEmailClient } from './providers/zoho/ZohoEmailClient';
-
-// ── Base Client (for extending with custom providers) ───
 export { BaseEmailClient } from './core/BaseEmailClient';
 
-// ── Webhook Server ──────────────────────────────────────
+export { createSESIncomingHandler, createSESEventHandler } from './webhooks/ses';
+export { createMailgunIncomingHandler, createMailgunEventHandler } from './webhooks/mailgun';
+export { createSendGridIncomingHandler, createSendGridEventHandler } from './webhooks/sendgrid';
+export { createMailchimpIncomingHandler, createMailchimpEventHandler } from './webhooks/mailchimp';
+export { createOpenTrackingHandler, createClickTrackingHandler } from './webhooks/tracking';
 export { WebhookServer } from './webhooks/WebhookServer';
 
-// ── Tracking ────────────────────────────────────────────
 export { TrackingManager } from './tracking/TrackingManager';
-
-// ── Attachments ─────────────────────────────────────────
 export { AttachmentHandler } from './attachments/AttachmentHandler';
-
-// ── Utilities ───────────────────────────────────────────
 export { ConfigValidator } from './utils/ConfigValidator';
-
-// ── Errors ──────────────────────────────────────────────
 export { EmailError, ValidationError, ProviderError, WebhookError } from './errors';
 
-// ── Types ───────────────────────────────────────────────
 export type {
-  // Core
   EmailProvider,
   EmailAddress,
   EmailRecipient,
@@ -41,8 +33,6 @@ export type {
   BufferAttachmentInput,
   UrlAttachmentInput,
   ProcessedAttachment,
-
-  // Provider configs
   BaseProviderConfig,
   SESConfig,
   MailgunConfig,
@@ -50,8 +40,6 @@ export type {
   MailchimpConfig,
   ZohoConfig,
   ProviderConfig,
-
-  // Tracking
   TrackingEventType,
   TrackingEvent,
   DeliveryEvent,
@@ -61,8 +49,13 @@ export type {
   TrackingEventData,
   TrackingCallbacks,
   TrackingConfig,
-
-  // Webhooks
+  WebhookHandler,
+  IncomingHandlerOptions,
+  EventHandlerOptions,
+  MailgunIncomingHandlerOptions,
+  MailgunEventHandlerOptions,
+  OpenTrackingHandlerOptions,
+  ClickTrackingHandlerOptions,
   IncomingEmail,
   IncomingAttachment,
   WebhookCallbacks,

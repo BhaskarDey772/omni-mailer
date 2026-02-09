@@ -10,10 +10,6 @@ import {
 import { MailchimpConfig } from '../../types/provider.types';
 import { ValidationError } from '../../errors';
 
-/**
- * Mailchimp Transactional (Mandrill) email client.
- * Uses the Mandrill API for transactional emails.
- */
 export class MailchimpEmailClient extends BaseEmailClient {
   private api: AxiosInstance;
   private apiKey: string;
@@ -42,13 +38,11 @@ export class MailchimpEmailClient extends BaseEmailClient {
         type: 'to',
       }));
 
-      // Add CC
       if (emailData.cc) {
         const ccAddresses = this.toRawEmails(emailData.cc);
         recipients.push(...ccAddresses.map((email) => ({ email, type: 'cc' })));
       }
 
-      // Add BCC
       if (emailData.bcc) {
         const bccAddresses = this.toRawEmails(emailData.bcc);
         recipients.push(...bccAddresses.map((email) => ({ email, type: 'bcc' })));
@@ -75,7 +69,6 @@ export class MailchimpEmailClient extends BaseEmailClient {
         message.headers = { ...message.headers, ...emailData.headers };
       }
 
-      // Add attachments
       if (attachments.length > 0) {
         const regularAtts = attachments.filter((a) => !a.inline);
         const inlineAtts = attachments.filter((a) => a.inline);
@@ -143,7 +136,6 @@ export class MailchimpEmailClient extends BaseEmailClient {
         recipients.push(...bccAddresses.map((email) => ({ email, type: 'bcc' })));
       }
 
-      // Convert templateData to merge_vars format
       const mergeVars = toAddresses.map((email) => ({
         rcpt: email,
         vars: Object.entries(emailData.templateData).map(([name, content]) => ({
@@ -165,7 +157,6 @@ export class MailchimpEmailClient extends BaseEmailClient {
         message.headers = { 'Reply-To': this.toEmailString(emailData.replyTo) };
       }
 
-      // Add attachments
       if (emailData.attachments) {
         const attachments = await this.processAttachments(emailData.attachments);
         message.attachments = attachments

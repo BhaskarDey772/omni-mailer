@@ -50,21 +50,18 @@ export class MailgunEmailClient extends BaseEmailClient {
         ...(emailData.trackClicks !== undefined && { 'o:tracking-clicks': emailData.trackClicks ? 'yes' : 'no' }),
       };
 
-      // Add custom headers
       if (emailData.headers) {
         for (const [key, value] of Object.entries(emailData.headers)) {
           messageData[`h:${key}`] = value;
         }
       }
 
-      // Add metadata as custom variables
       if (emailData.metadata) {
         for (const [key, value] of Object.entries(emailData.metadata)) {
           messageData[`v:${key}`] = value;
         }
       }
 
-      // Add attachments
       if (attachments.length > 0) {
         messageData.attachment = attachments.map((att) => ({
           filename: att.filename,
@@ -72,7 +69,6 @@ export class MailgunEmailClient extends BaseEmailClient {
           contentType: att.contentType,
         }));
 
-        // Separate inline attachments
         const inlineAtts = attachments.filter((a) => a.inline);
         if (inlineAtts.length > 0) {
           messageData.inline = inlineAtts.map((att) => ({
@@ -128,12 +124,8 @@ export class MailgunEmailClient extends BaseEmailClient {
     }
   }
 
-  /** Override bulk send to use Mailgun's batch sending (up to 1000 per request) */
   async sendBulk(emails: EmailData[], options: BulkSendOptions = {}): Promise<BulkSendResult> {
     const { batchSize = 1000, onProgress } = options;
-
-    // If emails share the same content, use recipient variables for batch
-    // Otherwise fall back to individual sends
     const results: SendResult[] = [];
     const startTime = Date.now();
 

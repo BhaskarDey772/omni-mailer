@@ -7,10 +7,6 @@ exports.MailchimpEmailClient = void 0;
 const axios_1 = __importDefault(require("axios"));
 const BaseEmailClient_1 = require("../../core/BaseEmailClient");
 const errors_1 = require("../../errors");
-/**
- * Mailchimp Transactional (Mandrill) email client.
- * Uses the Mandrill API for transactional emails.
- */
 class MailchimpEmailClient extends BaseEmailClient_1.BaseEmailClient {
     constructor(config) {
         super('mailchimp');
@@ -32,12 +28,10 @@ class MailchimpEmailClient extends BaseEmailClient_1.BaseEmailClient {
                 email,
                 type: 'to',
             }));
-            // Add CC
             if (emailData.cc) {
                 const ccAddresses = this.toRawEmails(emailData.cc);
                 recipients.push(...ccAddresses.map((email) => ({ email, type: 'cc' })));
             }
-            // Add BCC
             if (emailData.bcc) {
                 const bccAddresses = this.toRawEmails(emailData.bcc);
                 recipients.push(...bccAddresses.map((email) => ({ email, type: 'bcc' })));
@@ -60,7 +54,6 @@ class MailchimpEmailClient extends BaseEmailClient_1.BaseEmailClient {
             if (emailData.headers) {
                 message.headers = { ...message.headers, ...emailData.headers };
             }
-            // Add attachments
             if (attachments.length > 0) {
                 const regularAtts = attachments.filter((a) => !a.inline);
                 const inlineAtts = attachments.filter((a) => a.inline);
@@ -120,7 +113,6 @@ class MailchimpEmailClient extends BaseEmailClient_1.BaseEmailClient {
                 const bccAddresses = this.toRawEmails(emailData.bcc);
                 recipients.push(...bccAddresses.map((email) => ({ email, type: 'bcc' })));
             }
-            // Convert templateData to merge_vars format
             const mergeVars = toAddresses.map((email) => ({
                 rcpt: email,
                 vars: Object.entries(emailData.templateData).map(([name, content]) => ({
@@ -139,7 +131,6 @@ class MailchimpEmailClient extends BaseEmailClient_1.BaseEmailClient {
             if (emailData.replyTo) {
                 message.headers = { 'Reply-To': this.toEmailString(emailData.replyTo) };
             }
-            // Add attachments
             if (emailData.attachments) {
                 const attachments = await this.processAttachments(emailData.attachments);
                 message.attachments = attachments

@@ -1,60 +1,35 @@
-import express, { Request, Response, Express } from 'express';
-import axios from 'axios';
-import * as crypto from 'crypto';
-import {
-  WebhookServerOptions,
-  WebhookCallbacks,
-  IncomingEmail,
-} from '../types/webhook.types';
-import {
-  TrackingCallbacks,
-  TrackingEventData,
-  DeliveryEvent,
-  BounceEvent,
-  OpenEvent,
-  ClickEvent,
-  TrackingEvent,
-  TrackingConfig,
-} from '../types/tracking.types';
-import { EmailProvider } from '../types/core.types';
+import express, { Express } from 'express';
 import http from 'http';
-
-// 1x1 transparent GIF
-const TRACKING_PIXEL = Buffer.from(
-  'R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7',
-  'base64'
-);
+import { WebhookServerOptions, WebhookCallbacks } from '../types/webhook.types';
+import { TrackingCallbacks, TrackingEventData, DeliveryEvent, BounceEvent, OpenEvent, ClickEvent, TrackingEvent } from '../types/tracking.types';
+import { EmailProvider } from '../types/core.types';
+import { createSESIncomingHandler, createSESEventHandler } from './ses';
+import { createMailgunIncomingHandler, createMailgunEventHandler } from './mailgun';
+import { createSendGridIncomingHandler, createSendGridEventHandler } from './sendgrid';
+import { createMailchimpIncomingHandler, createMailchimpEventHandler } from './mailchimp';
+import { createOpenTrackingHandler, createClickTrackingHandler } from './tracking';
 
 export class WebhookServer {
   private app: Express;
   private server?: http.Server;
   private webhookCallbacks: WebhookCallbacks;
   private trackingCallbacks?: TrackingCallbacks;
-  private trackingConfig?: TrackingConfig;
-  private webhookSecrets?: WebhookServerOptions['webhookSecrets'];
   private basePath: string;
 
   constructor(private options: WebhookServerOptions) {
     this.app = express();
     this.webhookCallbacks = options.webhookCallbacks;
     this.trackingCallbacks = options.trackingCallbacks;
-    this.trackingConfig = options.trackingConfig;
-    this.webhookSecrets = options.webhookSecrets;
     this.basePath = options.basePath || '/webhooks';
 
     this.setupMiddleware();
-    this.setupIncomingRoutes();
-    this.setupTrackingEventRoutes();
-    this.setupTrackingPixelRoutes();
-    this.setupHealthCheck();
+    this.setupRoutes();
   }
 
-  /** Get the underlying Express app (to mount on your own server) */
   getApp(): Express {
     return this.app;
   }
 
-  /** Start as standalone server */
   start(): Promise<void> {
     const port = this.options.port || 3000;
     const host = this.options.host || '0.0.0.0';
@@ -62,26 +37,11 @@ export class WebhookServer {
     return new Promise((resolve) => {
       this.server = this.app.listen(port, host, () => {
         console.log(`Webhook server running on ${host}:${port}`);
-        console.log(`Incoming email endpoints:`);
-        console.log(`  SES:       POST ${this.basePath}/ses/incoming`);
-        console.log(`  Mailgun:   POST ${this.basePath}/mailgun/incoming`);
-        console.log(`  SendGrid:  POST ${this.basePath}/sendgrid/incoming`);
-        console.log(`  Mailchimp: POST ${this.basePath}/mailchimp/incoming`);
-        console.log(`  Custom:    POST ${this.basePath}/custom/incoming`);
-        console.log(`Tracking event endpoints:`);
-        console.log(`  SES:       POST ${this.basePath}/ses/events`);
-        console.log(`  Mailgun:   POST ${this.basePath}/mailgun/events`);
-        console.log(`  SendGrid:  POST ${this.basePath}/sendgrid/events`);
-        console.log(`  Mailchimp: POST ${this.basePath}/mailchimp/events`);
-        console.log(`Tracking pixel/click:`);
-        console.log(`  Open:      GET  /track/open/:messageId`);
-        console.log(`  Click:     GET  /track/click/:messageId`);
         resolve();
       });
     });
   }
 
-  /** Stop the server */
   stop(): Promise<void> {
     return new Promise((resolve, reject) => {
       if (!this.server) return resolve();
@@ -89,607 +49,65 @@ export class WebhookServer {
     });
   }
 
-  // ─── Middleware ───────────────────────────────────────────
-
   private setupMiddleware(): void {
     const maxBody = this.options.maxBodySize || '10mb';
     this.app.use(express.json({ limit: maxBody }));
     this.app.use(express.urlencoded({ extended: true, limit: maxBody }));
   }
 
-  // ─── Incoming Email Routes ────────────────────────────────
-
-  private setupIncomingRoutes(): void {
+  private setupRoutes(): void {
     const bp = this.basePath;
 
-    this.app.post(`${bp}/ses/incoming`, this.handleSESIncoming.bind(this));
-    this.app.post(`${bp}/mailgun/incoming`, this.handleMailgunIncoming.bind(this));
-    this.app.post(`${bp}/sendgrid/incoming`, this.handleSendGridIncoming.bind(this));
-    this.app.post(`${bp}/mailchimp/incoming`, this.handleMailchimpIncoming.bind(this));
-    this.app.post(`${bp}/custom/incoming`, this.handleCustomIncoming.bind(this));
-  }
-
-  private async handleSESIncoming(req: Request, res: Response): Promise<void> {
-    try {
-      // Handle SNS subscription confirmation
-      if (req.body.Type === 'SubscriptionConfirmation') {
-        if (req.body.SubscribeURL) {
-          await axios.get(req.body.SubscribeURL);
-        }
-        res.status(200).send('OK');
-        return;
-      }
-
-      if (req.body.Type === 'Notification') {
-        const message = JSON.parse(req.body.Message);
-        const mail = message.mail;
-
-        const email: IncomingEmail = {
-          provider: 'aws-ses',
-          from: mail.commonHeaders?.from?.[0] || mail.source,
-          to: mail.commonHeaders?.to || mail.destination,
-          subject: mail.commonHeaders?.subject || '',
-          messageId: mail.messageId,
-          timestamp: new Date(mail.timestamp),
-          headers: mail.headers?.reduce(
-            (acc: Record<string, string>, h: { name: string; value: string }) => {
-              acc[h.name] = h.value;
-              return acc;
-            },
-            {}
-          ),
-        };
-
-        await this.emitIncoming(email);
-      }
-
-      res.status(200).send('OK');
-    } catch (error: any) {
-      await this.emitError(error, 'aws-ses');
-      res.status(500).json({ error: error.message });
-    }
-  }
-
-  private async handleMailgunIncoming(req: Request, res: Response): Promise<void> {
-    try {
-      // Verify signature if secret provided
-      if (this.webhookSecrets?.mailgun) {
-        const { timestamp, token, signature } = req.body;
-        const hmac = crypto
-          .createHmac('sha256', this.webhookSecrets.mailgun)
-          .update(timestamp + token)
-          .digest('hex');
-        if (hmac !== signature) {
-          res.status(403).json({ error: 'Invalid signature' });
-          return;
-        }
-      }
-
-      const email: IncomingEmail = {
-        provider: 'mailgun',
-        from: req.body.sender || req.body.from,
-        to: Array.isArray(req.body.recipient)
-          ? req.body.recipient
-          : [req.body.recipient],
-        subject: req.body.subject || '',
-        text: req.body['body-plain'],
-        html: req.body['body-html'],
-        messageId: req.body['Message-Id'] || '',
-        inReplyTo: req.body['In-Reply-To'],
-        references: req.body.References?.split(' ').filter(Boolean),
-        timestamp: new Date(parseInt(req.body.timestamp) * 1000),
-      };
-
-      await this.emitIncoming(email);
-      res.status(200).send('OK');
-    } catch (error: any) {
-      await this.emitError(error, 'mailgun');
-      res.status(500).json({ error: error.message });
-    }
-  }
-
-  private async handleSendGridIncoming(req: Request, res: Response): Promise<void> {
-    try {
-      const email: IncomingEmail = {
-        provider: 'sendgrid',
-        from: req.body.from || '',
-        to: req.body.to ? [req.body.to] : [],
-        subject: req.body.subject || '',
-        text: req.body.text,
-        html: req.body.html,
-        messageId: '',
-        timestamp: new Date(),
-        envelope: req.body.envelope ? JSON.parse(req.body.envelope) : undefined,
-      };
-
-      // Extract messageId from headers
-      if (req.body.headers) {
-        try {
-          const headers = JSON.parse(req.body.headers);
-          email.messageId = headers['Message-ID'] || '';
-        } catch {
-          // headers might not be JSON
-        }
-      }
-
-      await this.emitIncoming(email);
-      res.status(200).send('OK');
-    } catch (error: any) {
-      await this.emitError(error, 'sendgrid');
-      res.status(500).json({ error: error.message });
-    }
-  }
-
-  private async handleMailchimpIncoming(req: Request, res: Response): Promise<void> {
-    try {
-      const email: IncomingEmail = {
-        provider: 'mailchimp',
-        from: req.body.from_email || req.body.msg?.from_email || '',
-        to: req.body.to ? [req.body.to] : [],
-        subject: req.body.subject || req.body.msg?.subject || '',
-        text: req.body.text || req.body.msg?.text,
-        html: req.body.html || req.body.msg?.html,
-        messageId: req.body.msg?._id || '',
-        timestamp: req.body.ts
-          ? new Date(req.body.ts * 1000)
-          : new Date(),
-      };
-
-      await this.emitIncoming(email);
-      res.status(200).send('OK');
-    } catch (error: any) {
-      await this.emitError(error, 'mailchimp');
-      res.status(500).json({ error: error.message });
-    }
-  }
-
-  private async handleCustomIncoming(req: Request, res: Response): Promise<void> {
-    try {
-      const body = req.body;
-      const email: IncomingEmail = {
-        provider: 'custom',
-        from: body.from || '',
-        to: Array.isArray(body.to) ? body.to : [body.to || ''],
-        subject: body.subject || '',
-        text: body.text || body.body,
-        html: body.html,
-        messageId: body.messageId || body.message_id || '',
-        inReplyTo: body.inReplyTo || body.in_reply_to,
-        timestamp: body.timestamp ? new Date(body.timestamp) : new Date(),
-        raw: body.raw,
-      };
-
-      await this.emitIncoming(email);
-      res.status(200).send('OK');
-    } catch (error: any) {
-      await this.emitError(error, 'custom' as EmailProvider);
-      res.status(500).json({ error: error.message });
-    }
-  }
-
-  // ─── Tracking Event Routes ───────────────────────────────
-
-  private setupTrackingEventRoutes(): void {
-    const bp = this.basePath;
-
-    this.app.post(`${bp}/ses/events`, this.handleSESEvents.bind(this));
-    this.app.post(`${bp}/mailgun/events`, this.handleMailgunEvents.bind(this));
-    this.app.post(`${bp}/sendgrid/events`, this.handleSendGridEvents.bind(this));
-    this.app.post(`${bp}/mailchimp/events`, this.handleMailchimpEvents.bind(this));
-  }
-
-  private async handleSESEvents(req: Request, res: Response): Promise<void> {
-    try {
-      // Handle SNS subscription confirmation
-      if (req.body.Type === 'SubscriptionConfirmation') {
-        if (req.body.SubscribeURL) {
-          await axios.get(req.body.SubscribeURL);
-        }
-        res.status(200).send('OK');
-        return;
-      }
-
-      if (req.body.Type === 'Notification') {
-        const message = JSON.parse(req.body.Message);
-        const eventType = message.eventType || message.notificationType;
-
-        const baseEvent = {
-          provider: 'aws-ses' as const,
-          messageId: message.mail?.messageId || '',
-          timestamp: new Date(message.mail?.timestamp || Date.now()),
-          recipient: '',
-        };
-
-        switch (eventType) {
-          case 'Delivery': {
-            const recipients = message.delivery?.recipients || [];
-            for (const recipient of recipients) {
-              await this.emitTrackingEvent({
-                ...baseEvent,
-                type: 'delivered',
-                recipient,
-                smtpResponse: message.delivery?.smtpResponse,
-              } as DeliveryEvent);
-            }
-            break;
-          }
-          case 'Bounce': {
-            const bouncedRecipients = message.bounce?.bouncedRecipients || [];
-            for (const r of bouncedRecipients) {
-              await this.emitTrackingEvent({
-                ...baseEvent,
-                type: 'bounced',
-                recipient: r.emailAddress,
-                bounceType: message.bounce?.bounceType === 'Permanent' ? 'hard' : 'soft',
-                bounceReason: r.diagnosticCode,
-                diagnosticCode: r.diagnosticCode,
-              } as BounceEvent);
-            }
-            break;
-          }
-          case 'Complaint': {
-            const complainedRecipients = message.complaint?.complainedRecipients || [];
-            for (const r of complainedRecipients) {
-              await this.emitTrackingEvent({
-                ...baseEvent,
-                type: 'complained',
-                recipient: r.emailAddress,
-              });
-            }
-            break;
-          }
-          case 'Open': {
-            await this.emitTrackingEvent({
-              ...baseEvent,
-              type: 'opened',
-              recipient: message.open?.ipAddress || '',
-              userAgent: message.open?.userAgent,
-              ipAddress: message.open?.ipAddress,
-            } as OpenEvent);
-            break;
-          }
-          case 'Click': {
-            await this.emitTrackingEvent({
-              ...baseEvent,
-              type: 'clicked',
-              recipient: message.click?.ipAddress || '',
-              url: message.click?.link,
-              userAgent: message.click?.userAgent,
-              ipAddress: message.click?.ipAddress,
-            } as ClickEvent);
-            break;
-          }
-        }
-      }
-
-      res.status(200).send('OK');
-    } catch (error: any) {
-      await this.emitError(error, 'aws-ses');
-      res.status(500).json({ error: error.message });
-    }
-  }
-
-  private async handleMailgunEvents(req: Request, res: Response): Promise<void> {
-    try {
-      // Verify signature
-      if (this.webhookSecrets?.mailgun) {
-        const sig = req.body.signature;
-        if (sig) {
-          const hmac = crypto
-            .createHmac('sha256', this.webhookSecrets.mailgun)
-            .update(sig.timestamp + sig.token)
-            .digest('hex');
-          if (hmac !== sig.signature) {
-            res.status(403).json({ error: 'Invalid signature' });
-            return;
-          }
-        }
-      }
-
-      const eventData = req.body['event-data'] || req.body;
-      const event = eventData.event;
-
-      const baseEvent = {
-        provider: 'mailgun' as const,
-        messageId: eventData.message?.headers?.['message-id'] || '',
-        timestamp: new Date((eventData.timestamp || 0) * 1000),
-        recipient: eventData.recipient || '',
-      };
-
-      switch (event) {
-        case 'delivered':
-          await this.emitTrackingEvent({
-            ...baseEvent,
-            type: 'delivered',
-          } as DeliveryEvent);
-          break;
-        case 'failed':
-          if (eventData.severity === 'permanent') {
-            await this.emitTrackingEvent({
-              ...baseEvent,
-              type: 'bounced',
-              bounceType: 'hard',
-              bounceReason: eventData.reason,
-            } as BounceEvent);
-          } else {
-            await this.emitTrackingEvent({
-              ...baseEvent,
-              type: 'bounced',
-              bounceType: 'soft',
-              bounceReason: eventData.reason,
-            } as BounceEvent);
-          }
-          break;
-        case 'opened':
-          await this.emitTrackingEvent({
-            ...baseEvent,
-            type: 'opened',
-            userAgent: eventData['user-agent'],
-            ipAddress: eventData.ip,
-          } as OpenEvent);
-          break;
-        case 'clicked':
-          await this.emitTrackingEvent({
-            ...baseEvent,
-            type: 'clicked',
-            url: eventData.url,
-            userAgent: eventData['user-agent'],
-            ipAddress: eventData.ip,
-          } as ClickEvent);
-          break;
-        case 'complained':
-          await this.emitTrackingEvent({ ...baseEvent, type: 'complained' });
-          break;
-        case 'unsubscribed':
-          await this.emitTrackingEvent({ ...baseEvent, type: 'unsubscribed' });
-          break;
-      }
-
-      res.status(200).send('OK');
-    } catch (error: any) {
-      await this.emitError(error, 'mailgun');
-      res.status(500).json({ error: error.message });
-    }
-  }
-
-  private async handleSendGridEvents(req: Request, res: Response): Promise<void> {
-    try {
-      // SendGrid sends an array of events
-      const events = Array.isArray(req.body) ? req.body : [req.body];
-
-      for (const sgEvent of events) {
-        const baseEvent = {
-          provider: 'sendgrid' as const,
-          messageId: sgEvent.sg_message_id || '',
-          timestamp: new Date((sgEvent.timestamp || 0) * 1000),
-          recipient: sgEvent.email || '',
-        };
-
-        switch (sgEvent.event) {
-          case 'delivered':
-            await this.emitTrackingEvent({
-              ...baseEvent,
-              type: 'delivered',
-              smtpResponse: sgEvent.response,
-            } as DeliveryEvent);
-            break;
-          case 'bounce':
-            await this.emitTrackingEvent({
-              ...baseEvent,
-              type: 'bounced',
-              bounceType: sgEvent.type === 'bounce' ? 'hard' : 'soft',
-              bounceReason: sgEvent.reason,
-            } as BounceEvent);
-            break;
-          case 'open':
-            await this.emitTrackingEvent({
-              ...baseEvent,
-              type: 'opened',
-              userAgent: sgEvent.useragent,
-              ipAddress: sgEvent.ip,
-            } as OpenEvent);
-            break;
-          case 'click':
-            await this.emitTrackingEvent({
-              ...baseEvent,
-              type: 'clicked',
-              url: sgEvent.url,
-              userAgent: sgEvent.useragent,
-              ipAddress: sgEvent.ip,
-            } as ClickEvent);
-            break;
-          case 'spamreport':
-            await this.emitTrackingEvent({ ...baseEvent, type: 'complained' });
-            break;
-          case 'unsubscribe':
-          case 'group_unsubscribe':
-            await this.emitTrackingEvent({ ...baseEvent, type: 'unsubscribed' });
-            break;
-        }
-      }
-
-      res.status(200).send('OK');
-    } catch (error: any) {
-      await this.emitError(error, 'sendgrid');
-      res.status(500).json({ error: error.message });
-    }
-  }
-
-  private async handleMailchimpEvents(req: Request, res: Response): Promise<void> {
-    try {
-      // Mandrill webhooks send events as mandrill_events form param
-      let events = req.body;
-      if (req.body.mandrill_events) {
-        events = JSON.parse(req.body.mandrill_events);
-      }
-      if (!Array.isArray(events)) events = [events];
-
-      for (const mcEvent of events) {
-        const msg = mcEvent.msg || {};
-        const baseEvent = {
-          provider: 'mailchimp' as const,
-          messageId: msg._id || '',
-          timestamp: new Date((mcEvent.ts || 0) * 1000),
-          recipient: msg.email || '',
-        };
-
-        switch (mcEvent.event) {
-          case 'send':
-            await this.emitTrackingEvent({
-              ...baseEvent,
-              type: 'delivered',
-            } as DeliveryEvent);
-            break;
-          case 'hard_bounce':
-            await this.emitTrackingEvent({
-              ...baseEvent,
-              type: 'bounced',
-              bounceType: 'hard',
-              bounceReason: msg.bounce_description,
-              diagnosticCode: msg.diag,
-            } as BounceEvent);
-            break;
-          case 'soft_bounce':
-            await this.emitTrackingEvent({
-              ...baseEvent,
-              type: 'bounced',
-              bounceType: 'soft',
-              bounceReason: msg.bounce_description,
-            } as BounceEvent);
-            break;
-          case 'open':
-            await this.emitTrackingEvent({
-              ...baseEvent,
-              type: 'opened',
-              userAgent: msg.user_agent,
-              ipAddress: msg.ip,
-            } as OpenEvent);
-            break;
-          case 'click':
-            await this.emitTrackingEvent({
-              ...baseEvent,
-              type: 'clicked',
-              url: mcEvent.url,
-              userAgent: msg.user_agent,
-              ipAddress: msg.ip,
-            } as ClickEvent);
-            break;
-          case 'spam':
-            await this.emitTrackingEvent({ ...baseEvent, type: 'complained' });
-            break;
-          case 'unsub':
-            await this.emitTrackingEvent({ ...baseEvent, type: 'unsubscribed' });
-            break;
-        }
-      }
-
-      res.status(200).send('OK');
-    } catch (error: any) {
-      await this.emitError(error, 'mailchimp');
-      res.status(500).json({ error: error.message });
-    }
-  }
-
-  // ─── Open / Click Tracking Routes ────────────────────────
-
-  private setupTrackingPixelRoutes(): void {
-    this.app.get('/track/open/:messageId', this.handleOpenTracking.bind(this));
-    this.app.get('/track/click/:messageId', this.handleClickTracking.bind(this));
-  }
-
-  private async handleOpenTracking(req: Request, res: Response): Promise<void> {
-    try {
-      const { messageId } = req.params;
-
-      await this.emitTrackingEvent({
-        type: 'opened',
-        messageId: decodeURIComponent(messageId),
-        provider: 'aws-ses', // custom tracking, provider unknown
-        timestamp: new Date(),
-        recipient: '',
-        userAgent: req.headers['user-agent'],
-        ipAddress: req.ip,
-      } as OpenEvent);
-    } catch {
-      // Don't fail the pixel response
-    }
-
-    // Always return the tracking pixel
-    res.set({
-      'Content-Type': 'image/gif',
-      'Content-Length': TRACKING_PIXEL.length.toString(),
-      'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
-      Pragma: 'no-cache',
-      Expires: '0',
+    const incomingOpts = (provider: EmailProvider | 'custom') => ({
+      onEmail: async (email: any) => {
+        await this.webhookCallbacks.onIncomingEmail?.(email);
+      },
+      onError: async (error: Error) => {
+        await this.webhookCallbacks.onError?.(error, provider);
+      },
     });
-    res.end(TRACKING_PIXEL);
-  }
 
-  private async handleClickTracking(req: Request, res: Response): Promise<void> {
-    const { messageId } = req.params;
-    const url = req.query.url as string;
+    const eventOpts = (provider: EmailProvider) => ({
+      onEvent: async (event: TrackingEventData) => {
+        await this.dispatchTrackingEvent(event);
+      },
+      onError: async (error: Error) => {
+        await this.webhookCallbacks.onError?.(error, provider);
+      },
+    });
 
-    try {
-      await this.emitTrackingEvent({
-        type: 'clicked',
-        messageId: decodeURIComponent(messageId),
-        provider: 'aws-ses',
-        timestamp: new Date(),
-        recipient: '',
-        url: url || '',
-        userAgent: req.headers['user-agent'],
-        ipAddress: req.ip,
-      } as ClickEvent);
-    } catch {
-      // Don't block redirect
-    }
+    this.app.post(`${bp}/ses/incoming`, createSESIncomingHandler(incomingOpts('aws-ses')));
+    this.app.post(`${bp}/mailgun/incoming`, createMailgunIncomingHandler({
+      ...incomingOpts('mailgun'),
+      secret: this.options.webhookSecrets?.mailgun,
+    }));
+    this.app.post(`${bp}/sendgrid/incoming`, createSendGridIncomingHandler(incomingOpts('sendgrid')));
+    this.app.post(`${bp}/mailchimp/incoming`, createMailchimpIncomingHandler(incomingOpts('mailchimp')));
 
-    if (url) {
-      res.redirect(302, url);
-    } else {
-      res.status(400).send('Missing URL');
-    }
-  }
+    this.app.post(`${bp}/ses/events`, createSESEventHandler(eventOpts('aws-ses')));
+    this.app.post(`${bp}/mailgun/events`, createMailgunEventHandler({
+      ...eventOpts('mailgun'),
+      secret: this.options.webhookSecrets?.mailgun,
+    }));
+    this.app.post(`${bp}/sendgrid/events`, createSendGridEventHandler(eventOpts('sendgrid')));
+    this.app.post(`${bp}/mailchimp/events`, createMailchimpEventHandler(eventOpts('mailchimp')));
 
-  // ─── Health Check ────────────────────────────────────────
+    const trackingEventOpts = {
+      onEvent: async (event: TrackingEventData) => {
+        await this.dispatchTrackingEvent(event);
+      },
+    };
+    this.app.get('/track/open/:messageId', createOpenTrackingHandler(trackingEventOpts));
+    this.app.get('/track/click/:messageId', createClickTrackingHandler(trackingEventOpts));
 
-  private setupHealthCheck(): void {
     this.app.get('/health', (_req, res) => {
-      res.json({
-        status: 'healthy',
-        timestamp: new Date().toISOString(),
-        endpoints: {
-          incoming: [
-            `${this.basePath}/ses/incoming`,
-            `${this.basePath}/mailgun/incoming`,
-            `${this.basePath}/sendgrid/incoming`,
-            `${this.basePath}/mailchimp/incoming`,
-            `${this.basePath}/custom/incoming`,
-          ],
-          events: [
-            `${this.basePath}/ses/events`,
-            `${this.basePath}/mailgun/events`,
-            `${this.basePath}/sendgrid/events`,
-            `${this.basePath}/mailchimp/events`,
-          ],
-          tracking: ['/track/open/:messageId', '/track/click/:messageId'],
-        },
-      });
+      res.json({ status: 'healthy', timestamp: new Date().toISOString() });
     });
   }
 
-  // ─── Event Emitters ──────────────────────────────────────
-
-  private async emitIncoming(email: IncomingEmail): Promise<void> {
-    if (this.webhookCallbacks.onIncomingEmail) {
-      await this.webhookCallbacks.onIncomingEmail(email);
-    }
-  }
-
-  private async emitTrackingEvent(event: TrackingEventData): Promise<void> {
+  private async dispatchTrackingEvent(event: TrackingEventData): Promise<void> {
     if (!this.trackingCallbacks) return;
 
-    // Fire type-specific callback
     switch (event.type) {
       case 'delivered':
         await this.trackingCallbacks.onDelivery?.(event as DeliveryEvent);
@@ -711,13 +129,6 @@ export class WebhookServer {
         break;
     }
 
-    // Fire catch-all callback
     await this.trackingCallbacks.onAny?.(event);
-  }
-
-  private async emitError(error: Error, provider: EmailProvider | 'custom'): Promise<void> {
-    if (this.webhookCallbacks.onError) {
-      await this.webhookCallbacks.onError(error, provider as EmailProvider);
-    }
   }
 }

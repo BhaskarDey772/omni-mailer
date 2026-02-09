@@ -61,7 +61,7 @@ export interface TrackingCallbacks {
 }
 
 export interface TrackingConfig {
-  baseUrl: string; // Public URL for tracking endpoints
+  baseUrl: string;
   enabled?: boolean;
   trackOpens?: boolean;
   trackClicks?: boolean;

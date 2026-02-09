@@ -1,7 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.WebhookError = exports.ProviderError = exports.ValidationError = exports.EmailError = exports.ConfigValidator = exports.AttachmentHandler = exports.TrackingManager = exports.WebhookServer = exports.BaseEmailClient = exports.ZohoEmailClient = exports.MailchimpEmailClient = exports.SendGridEmailClient = exports.MailgunEmailClient = exports.SESEmailClient = void 0;
-// ── Provider Clients ────────────────────────────────────
+exports.WebhookError = exports.ProviderError = exports.ValidationError = exports.EmailError = exports.ConfigValidator = exports.AttachmentHandler = exports.TrackingManager = exports.WebhookServer = exports.createClickTrackingHandler = exports.createOpenTrackingHandler = exports.createMailchimpEventHandler = exports.createMailchimpIncomingHandler = exports.createSendGridEventHandler = exports.createSendGridIncomingHandler = exports.createMailgunEventHandler = exports.createMailgunIncomingHandler = exports.createSESEventHandler = exports.createSESIncomingHandler = exports.BaseEmailClient = exports.ZohoEmailClient = exports.MailchimpEmailClient = exports.SendGridEmailClient = exports.MailgunEmailClient = exports.SESEmailClient = void 0;
 var SESEmailClient_1 = require("./providers/ses/SESEmailClient");
 Object.defineProperty(exports, "SESEmailClient", { enumerable: true, get: function () { return SESEmailClient_1.SESEmailClient; } });
 var MailgunEmailClient_1 = require("./providers/mailgun/MailgunEmailClient");
@@ -12,22 +11,31 @@ var MailchimpEmailClient_1 = require("./providers/mailchimp/MailchimpEmailClient
 Object.defineProperty(exports, "MailchimpEmailClient", { enumerable: true, get: function () { return MailchimpEmailClient_1.MailchimpEmailClient; } });
 var ZohoEmailClient_1 = require("./providers/zoho/ZohoEmailClient");
 Object.defineProperty(exports, "ZohoEmailClient", { enumerable: true, get: function () { return ZohoEmailClient_1.ZohoEmailClient; } });
-// ── Base Client (for extending with custom providers) ───
 var BaseEmailClient_1 = require("./core/BaseEmailClient");
 Object.defineProperty(exports, "BaseEmailClient", { enumerable: true, get: function () { return BaseEmailClient_1.BaseEmailClient; } });
-// ── Webhook Server ──────────────────────────────────────
+var ses_1 = require("./webhooks/ses");
+Object.defineProperty(exports, "createSESIncomingHandler", { enumerable: true, get: function () { return ses_1.createSESIncomingHandler; } });
+Object.defineProperty(exports, "createSESEventHandler", { enumerable: true, get: function () { return ses_1.createSESEventHandler; } });
+var mailgun_1 = require("./webhooks/mailgun");
+Object.defineProperty(exports, "createMailgunIncomingHandler", { enumerable: true, get: function () { return mailgun_1.createMailgunIncomingHandler; } });
+Object.defineProperty(exports, "createMailgunEventHandler", { enumerable: true, get: function () { return mailgun_1.createMailgunEventHandler; } });
+var sendgrid_1 = require("./webhooks/sendgrid");
+Object.defineProperty(exports, "createSendGridIncomingHandler", { enumerable: true, get: function () { return sendgrid_1.createSendGridIncomingHandler; } });
+Object.defineProperty(exports, "createSendGridEventHandler", { enumerable: true, get: function () { return sendgrid_1.createSendGridEventHandler; } });
+var mailchimp_1 = require("./webhooks/mailchimp");
+Object.defineProperty(exports, "createMailchimpIncomingHandler", { enumerable: true, get: function () { return mailchimp_1.createMailchimpIncomingHandler; } });
+Object.defineProperty(exports, "createMailchimpEventHandler", { enumerable: true, get: function () { return mailchimp_1.createMailchimpEventHandler; } });
+var tracking_1 = require("./webhooks/tracking");
+Object.defineProperty(exports, "createOpenTrackingHandler", { enumerable: true, get: function () { return tracking_1.createOpenTrackingHandler; } });
+Object.defineProperty(exports, "createClickTrackingHandler", { enumerable: true, get: function () { return tracking_1.createClickTrackingHandler; } });
 var WebhookServer_1 = require("./webhooks/WebhookServer");
 Object.defineProperty(exports, "WebhookServer", { enumerable: true, get: function () { return WebhookServer_1.WebhookServer; } });
-// ── Tracking ────────────────────────────────────────────
 var TrackingManager_1 = require("./tracking/TrackingManager");
 Object.defineProperty(exports, "TrackingManager", { enumerable: true, get: function () { return TrackingManager_1.TrackingManager; } });
-// ── Attachments ─────────────────────────────────────────
 var AttachmentHandler_1 = require("./attachments/AttachmentHandler");
 Object.defineProperty(exports, "AttachmentHandler", { enumerable: true, get: function () { return AttachmentHandler_1.AttachmentHandler; } });
-// ── Utilities ───────────────────────────────────────────
 var ConfigValidator_1 = require("./utils/ConfigValidator");
 Object.defineProperty(exports, "ConfigValidator", { enumerable: true, get: function () { return ConfigValidator_1.ConfigValidator; } });
-// ── Errors ──────────────────────────────────────────────
 var errors_1 = require("./errors");
 Object.defineProperty(exports, "EmailError", { enumerable: true, get: function () { return errors_1.EmailError; } });
 Object.defineProperty(exports, "ValidationError", { enumerable: true, get: function () { return errors_1.ValidationError; } });

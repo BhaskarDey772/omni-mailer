@@ -10,6 +10,36 @@
       "require": "./dist/index.js",
       "types": "./dist/index.d.ts"
     },
+    "./webhooks": {
+      "import": "./dist/webhooks/index.js",
+      "require": "./dist/webhooks/index.js",
+      "types": "./dist/webhooks/index.d.ts"
+    },
+    "./webhooks/ses": {
+      "import": "./dist/webhooks/ses.js",
+      "require": "./dist/webhooks/ses.js",
+      "types": "./dist/webhooks/ses.d.ts"
+    },
+    "./webhooks/mailgun": {
+      "import": "./dist/webhooks/mailgun.js",
+      "require": "./dist/webhooks/mailgun.js",
+      "types": "./dist/webhooks/mailgun.d.ts"
+    },
+    "./webhooks/sendgrid": {
+      "import": "./dist/webhooks/sendgrid.js",
+      "require": "./dist/webhooks/sendgrid.js",
+      "types": "./dist/webhooks/sendgrid.d.ts"
+    },
+    "./webhooks/mailchimp": {
+      "import": "./dist/webhooks/mailchimp.js",
+      "require": "./dist/webhooks/mailchimp.js",
+      "types": "./dist/webhooks/mailchimp.d.ts"
+    },
+    "./webhooks/tracking": {
+      "import": "./dist/webhooks/tracking.js",
+      "require": "./dist/webhooks/tracking.js",
+      "types": "./dist/webhooks/tracking.d.ts"
+    },
     "./types": {
       "types": "./dist/types/index.d.ts"
     }

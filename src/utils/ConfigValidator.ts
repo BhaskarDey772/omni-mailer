@@ -8,10 +8,6 @@ import {
 } from '../types/provider.types';
 import { EmailProvider } from '../types/core.types';
 
-/**
- * Build provider config from environment variables.
- * Throws if required env vars are missing.
- */
 export class ConfigValidator {
   static fromEnv(provider: EmailProvider): ProviderConfig {
     switch (provider) {

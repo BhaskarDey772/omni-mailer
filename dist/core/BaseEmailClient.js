@@ -7,11 +7,9 @@ class BaseEmailClient {
     constructor(provider) {
         this.provider = provider;
     }
-    /** Enable open/click tracking for emails sent through this client */
     enableTracking(config) {
         this.trackingManager = new TrackingManager_1.TrackingManager(config);
     }
-    /** Send emails in bulk with concurrency control */
     async sendBulk(emails, options = {}) {
         const { concurrency = 5, delayMs = 100, retryAttempts = 0, onProgress } = options;
         const results = [];
@@ -40,7 +38,6 @@ class BaseEmailClient {
             durationMs: Date.now() - startTime,
         };
     }
-    /** Retry a send operation with exponential backoff */
     async sendWithRetry(emailData, maxRetries) {
         let lastResult;
         for (let attempt = 0; attempt <= maxRetries; attempt++) {
@@ -53,7 +50,6 @@ class BaseEmailClient {
         }
         return lastResult;
     }
-    /** Apply tracking (open pixel + click rewriting) to HTML content */
     applyTracking(html, emailData) {
         if (!this.trackingManager || !html)
             return html;
@@ -66,32 +62,27 @@ class BaseEmailClient {
         }
         return tracked;
     }
-    /** Process attachments from user input to provider-ready format */
     async processAttachments(attachments) {
         if (!attachments || attachments.length === 0)
             return [];
         return AttachmentHandler_1.AttachmentHandler.processAll(attachments);
     }
-    /** Normalize email recipient to string */
     toEmailString(recipient) {
         if (typeof recipient === 'string')
             return recipient;
         return recipient.name ? `${recipient.name} <${recipient.email}>` : recipient.email;
     }
-    /** Normalize recipients to string array */
     toEmailStrings(recipients) {
         if (Array.isArray(recipients)) {
             return recipients.map((r) => this.toEmailString(r));
         }
         return [this.toEmailString(recipients)];
     }
-    /** Normalize recipient to raw email address only */
     toRawEmail(recipient) {
         if (typeof recipient === 'string')
             return recipient;
         return recipient.email;
     }
-    /** Normalize recipients to raw email array */
     toRawEmails(recipients) {
         if (Array.isArray(recipients)) {
             return recipients.map((r) => this.toRawEmail(r));

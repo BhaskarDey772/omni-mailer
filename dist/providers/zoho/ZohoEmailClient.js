@@ -37,11 +37,6 @@ exports.ZohoEmailClient = void 0;
 const nodemailer = __importStar(require("nodemailer"));
 const BaseEmailClient_1 = require("../../core/BaseEmailClient");
 const errors_1 = require("../../errors");
-/**
- * Zoho Mail client using SMTP via nodemailer.
- * Zoho doesn't have a transactional API like other providers,
- * so we use their SMTP service.
- */
 class ZohoEmailClient extends BaseEmailClient_1.BaseEmailClient {
     constructor(config) {
         super('zoho');
@@ -57,7 +52,7 @@ class ZohoEmailClient extends BaseEmailClient_1.BaseEmailClient {
                 user: config.user,
                 pass: config.password,
             },
-            pool: true, // Use connection pooling for bulk sends
+            pool: true,
             maxConnections: 5,
         });
     }
@@ -76,7 +71,6 @@ class ZohoEmailClient extends BaseEmailClient_1.BaseEmailClient {
                 ...(emailData.bcc && { bcc: this.toEmailStrings(emailData.bcc).join(', ') }),
                 ...(emailData.headers && { headers: emailData.headers }),
             };
-            // Add attachments
             if (attachments.length > 0) {
                 mailOptions.attachments = attachments.map((att) => ({
                     filename: att.filename,
@@ -102,15 +96,12 @@ class ZohoEmailClient extends BaseEmailClient_1.BaseEmailClient {
         }
     }
     async sendTemplated(emailData) {
-        // Zoho SMTP doesn't have native template support.
-        // Users should render templates themselves before sending.
         return {
             success: false,
             error: 'Zoho does not support server-side templates. Render the template to HTML and use send() instead.',
             provider: 'zoho',
         };
     }
-    /** Verify SMTP connection is working */
     async verify() {
         try {
             await this.transporter.verify();
@@ -120,7 +111,6 @@ class ZohoEmailClient extends BaseEmailClient_1.BaseEmailClient {
             return false;
         }
     }
-    /** Close the SMTP connection pool */
     close() {
         this.transporter.close();
     }

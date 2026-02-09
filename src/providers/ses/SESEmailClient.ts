@@ -113,7 +113,7 @@ export class SESEmailClient extends BaseEmailClient {
     }
   }
 
-  /** Send raw MIME email (needed for attachments) */
+
   private async sendRaw(emailData: EmailData): Promise<SendResult> {
     try {
       const attachments = await this.processAttachments(emailData.attachments);
@@ -140,7 +140,7 @@ export class SESEmailClient extends BaseEmailClient {
     }
   }
 
-  /** Build a multipart MIME message with attachments */
+
   private buildMimeMessage(
     emailData: EmailData,
     html: string | undefined,
@@ -151,7 +151,6 @@ export class SESEmailClient extends BaseEmailClient {
 
     const lines: string[] = [];
 
-    // Headers
     lines.push(`From: ${this.toEmailString(emailData.from)}`);
     lines.push(`To: ${this.toEmailStrings(emailData.to).join(', ')}`);
     if (emailData.cc) lines.push(`Cc: ${this.toEmailStrings(emailData.cc).join(', ')}`);
@@ -171,7 +170,6 @@ export class SESEmailClient extends BaseEmailClient {
     lines.push(`Content-Type: multipart/mixed; boundary="${mixedBoundary}"`);
     lines.push('');
 
-    // Body part (text + html)
     lines.push(`--${mixedBoundary}`);
     lines.push(`Content-Type: multipart/alternative; boundary="${boundary}"`);
     lines.push('');
@@ -196,7 +194,6 @@ export class SESEmailClient extends BaseEmailClient {
 
     lines.push(`--${boundary}--`);
 
-    // Attachments
     for (const att of attachments) {
       lines.push(`--${mixedBoundary}`);
       const disposition = att.inline ? 'inline' : 'attachment';
@@ -210,7 +207,6 @@ export class SESEmailClient extends BaseEmailClient {
       }
       lines.push('');
 
-      // Base64 encode in 76-char lines
       const b64 = att.content.toString('base64');
       for (let i = 0; i < b64.length; i += 76) {
         lines.push(b64.slice(i, i + 76));

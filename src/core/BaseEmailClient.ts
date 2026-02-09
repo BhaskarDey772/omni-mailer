@@ -22,18 +22,18 @@ export abstract class BaseEmailClient {
     this.provider = provider;
   }
 
-  /** Enable open/click tracking for emails sent through this client */
+
   enableTracking(config: TrackingConfig): void {
     this.trackingManager = new TrackingManager(config);
   }
 
-  /** Send a single email */
+
   abstract send(emailData: EmailData): Promise<SendResult>;
 
-  /** Send a templated email */
+
   abstract sendTemplated(emailData: TemplatedEmailData): Promise<SendResult>;
 
-  /** Send emails in bulk with concurrency control */
+
   async sendBulk(emails: EmailData[], options: BulkSendOptions = {}): Promise<BulkSendResult> {
     const { concurrency = 5, delayMs = 100, retryAttempts = 0, onProgress } = options;
     const results: SendResult[] = [];
@@ -69,7 +69,7 @@ export abstract class BaseEmailClient {
     };
   }
 
-  /** Retry a send operation with exponential backoff */
+
   protected async sendWithRetry(emailData: EmailData, maxRetries: number): Promise<SendResult> {
     let lastResult: SendResult | undefined;
 
@@ -85,7 +85,7 @@ export abstract class BaseEmailClient {
     return lastResult!;
   }
 
-  /** Apply tracking (open pixel + click rewriting) to HTML content */
+
   protected applyTracking(html: string, emailData: EmailData): string {
     if (!this.trackingManager || !html) return html;
 
@@ -99,7 +99,7 @@ export abstract class BaseEmailClient {
     return tracked;
   }
 
-  /** Process attachments from user input to provider-ready format */
+
   protected async processAttachments(
     attachments?: AttachmentInput[]
   ): Promise<ProcessedAttachment[]> {
@@ -107,13 +107,13 @@ export abstract class BaseEmailClient {
     return AttachmentHandler.processAll(attachments);
   }
 
-  /** Normalize email recipient to string */
+
   protected toEmailString(recipient: EmailRecipient): string {
     if (typeof recipient === 'string') return recipient;
     return recipient.name ? `${recipient.name} <${recipient.email}>` : recipient.email;
   }
 
-  /** Normalize recipients to string array */
+
   protected toEmailStrings(recipients: EmailRecipients): string[] {
     if (Array.isArray(recipients)) {
       return recipients.map((r) => this.toEmailString(r));
@@ -121,13 +121,13 @@ export abstract class BaseEmailClient {
     return [this.toEmailString(recipients)];
   }
 
-  /** Normalize recipient to raw email address only */
+
   protected toRawEmail(recipient: EmailRecipient): string {
     if (typeof recipient === 'string') return recipient;
     return recipient.email;
   }
 
-  /** Normalize recipients to raw email array */
+
   protected toRawEmails(recipients: EmailRecipients): string[] {
     if (Array.isArray(recipients)) {
       return recipients.map((r) => this.toRawEmail(r));

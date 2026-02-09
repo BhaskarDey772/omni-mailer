@@ -6,9 +6,7 @@ export declare class SESEmailClient extends BaseEmailClient {
     constructor(config: SESConfig);
     send(emailData: EmailData): Promise<SendResult>;
     sendTemplated(emailData: TemplatedEmailData): Promise<SendResult>;
-    /** Send raw MIME email (needed for attachments) */
     private sendRaw;
-    /** Build a multipart MIME message with attachments */
     private buildMimeMessage;
 }
 //# sourceMappingURL=SESEmailClient.d.ts.map

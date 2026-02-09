@@ -18,7 +18,7 @@ export interface MailgunConfig extends BaseProviderConfig {
   provider: 'mailgun';
   apiKey: string;
   domain: string;
-  host?: string; // 'api.eu.mailgun.net' for EU
+  host?: string;
 }
 
 export interface SendGridConfig extends BaseProviderConfig {

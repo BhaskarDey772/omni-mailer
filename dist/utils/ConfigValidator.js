@@ -1,10 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ConfigValidator = void 0;
-/**
- * Build provider config from environment variables.
- * Throws if required env vars are missing.
- */
 class ConfigValidator {
     static fromEnv(provider) {
         switch (provider) {

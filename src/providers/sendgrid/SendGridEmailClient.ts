@@ -40,17 +40,14 @@ export class SendGridEmailClient extends BaseEmailClient {
         },
       };
 
-      // Add categories (tags)
       if (emailData.tags) {
         msg.categories = emailData.tags;
       }
 
-      // Add custom args (metadata)
       if (emailData.metadata) {
         msg.customArgs = emailData.metadata;
       }
 
-      // Add attachments
       if (attachments.length > 0) {
         msg.attachments = attachments.map((att) => ({
           filename: att.filename,
@@ -93,7 +90,6 @@ export class SendGridEmailClient extends BaseEmailClient {
         ...(emailData.tags && { categories: emailData.tags }),
       };
 
-      // Add attachments
       if (emailData.attachments) {
         const attachments = await this.processAttachments(emailData.attachments);
         msg.attachments = attachments.map((att) => ({
@@ -124,7 +120,6 @@ export class SendGridEmailClient extends BaseEmailClient {
     }
   }
 
-  /** Override bulk to use SendGrid's sendMultiple for efficiency */
   async sendBulk(emails: EmailData[], options: BulkSendOptions = {}): Promise<BulkSendResult> {
     const { batchSize = 1000, onProgress } = options;
     const results: SendResult[] = [];

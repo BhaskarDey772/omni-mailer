@@ -1,5 +1,34 @@
-import { EmailProvider, EmailAddress } from './core.types';
-import { TrackingCallbacks, TrackingConfig } from './tracking.types';
+import { EmailProvider } from './core.types';
+import { TrackingCallbacks, TrackingConfig, TrackingEventData } from './tracking.types';
+import { Request, Response } from 'express';
+
+export type WebhookHandler = (req: Request, res: Response) => void | Promise<void>;
+
+export interface IncomingHandlerOptions {
+  onEmail: (email: IncomingEmail) => void | Promise<void>;
+  onError?: (error: Error) => void | Promise<void>;
+}
+
+export interface EventHandlerOptions {
+  onEvent: (event: TrackingEventData) => void | Promise<void>;
+  onError?: (error: Error) => void | Promise<void>;
+}
+
+export interface MailgunIncomingHandlerOptions extends IncomingHandlerOptions {
+  secret?: string;
+}
+
+export interface MailgunEventHandlerOptions extends EventHandlerOptions {
+  secret?: string;
+}
+
+export interface OpenTrackingHandlerOptions {
+  onEvent: (event: TrackingEventData) => void | Promise<void>;
+}
+
+export interface ClickTrackingHandlerOptions {
+  onEvent: (event: TrackingEventData) => void | Promise<void>;
+}
 
 export interface IncomingEmail {
   provider: EmailProvider | 'custom';

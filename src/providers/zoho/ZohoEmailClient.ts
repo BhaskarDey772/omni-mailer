@@ -8,11 +8,6 @@ import {
 import { ZohoConfig } from '../../types/provider.types';
 import { ValidationError } from '../../errors';
 
-/**
- * Zoho Mail client using SMTP via nodemailer.
- * Zoho doesn't have a transactional API like other providers,
- * so we use their SMTP service.
- */
 export class ZohoEmailClient extends BaseEmailClient {
   private transporter: nodemailer.Transporter;
 
@@ -30,7 +25,7 @@ export class ZohoEmailClient extends BaseEmailClient {
         user: config.user,
         pass: config.password,
       },
-      pool: true, // Use connection pooling for bulk sends
+      pool: true,
       maxConnections: 5,
     });
   }
@@ -52,7 +47,6 @@ export class ZohoEmailClient extends BaseEmailClient {
         ...(emailData.headers && { headers: emailData.headers }),
       };
 
-      // Add attachments
       if (attachments.length > 0) {
         mailOptions.attachments = attachments.map((att) => ({
           filename: att.filename,
@@ -80,8 +74,6 @@ export class ZohoEmailClient extends BaseEmailClient {
   }
 
   async sendTemplated(emailData: TemplatedEmailData): Promise<SendResult> {
-    // Zoho SMTP doesn't have native template support.
-    // Users should render templates themselves before sending.
     return {
       success: false,
       error:
@@ -90,7 +82,6 @@ export class ZohoEmailClient extends BaseEmailClient {
     };
   }
 
-  /** Verify SMTP connection is working */
   async verify(): Promise<boolean> {
     try {
       await this.transporter.verify();
@@ -100,7 +91,6 @@ export class ZohoEmailClient extends BaseEmailClient {
     }
   }
 
-  /** Close the SMTP connection pool */
   close(): void {
     this.transporter.close();
   }

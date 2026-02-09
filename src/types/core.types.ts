@@ -68,7 +68,6 @@ export interface BulkSendResult {
   durationMs: number;
 }
 
-// Attachment input types (what the user provides)
 export interface FileAttachmentInput {
   type: 'file';
   filename: string;
@@ -98,7 +97,6 @@ export interface UrlAttachmentInput {
 
 export type AttachmentInput = FileAttachmentInput | BufferAttachmentInput | UrlAttachmentInput;
 
-// Processed attachment (ready for providers)
 export interface ProcessedAttachment {
   filename: string;
   content: Buffer;

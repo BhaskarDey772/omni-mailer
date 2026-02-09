@@ -91,7 +91,6 @@ class SESEmailClient extends BaseEmailClient_1.BaseEmailClient {
             };
         }
     }
-    /** Send raw MIME email (needed for attachments) */
     async sendRaw(emailData) {
         try {
             const attachments = await this.processAttachments(emailData.attachments);
@@ -114,12 +113,10 @@ class SESEmailClient extends BaseEmailClient_1.BaseEmailClient {
             };
         }
     }
-    /** Build a multipart MIME message with attachments */
     buildMimeMessage(emailData, html, attachments) {
         const boundary = `----=_Part_${Date.now()}_${Math.random().toString(36).slice(2)}`;
         const mixedBoundary = `----=_Mixed_${Date.now()}_${Math.random().toString(36).slice(2)}`;
         const lines = [];
-        // Headers
         lines.push(`From: ${this.toEmailString(emailData.from)}`);
         lines.push(`To: ${this.toEmailStrings(emailData.to).join(', ')}`);
         if (emailData.cc)
@@ -136,7 +133,6 @@ class SESEmailClient extends BaseEmailClient_1.BaseEmailClient {
         }
         lines.push(`Content-Type: multipart/mixed; boundary="${mixedBoundary}"`);
         lines.push('');
-        // Body part (text + html)
         lines.push(`--${mixedBoundary}`);
         lines.push(`Content-Type: multipart/alternative; boundary="${boundary}"`);
         lines.push('');
@@ -157,7 +153,6 @@ class SESEmailClient extends BaseEmailClient_1.BaseEmailClient {
             lines.push('');
         }
         lines.push(`--${boundary}--`);
-        // Attachments
         for (const att of attachments) {
             lines.push(`--${mixedBoundary}`);
             const disposition = att.inline ? 'inline' : 'attachment';
@@ -168,7 +163,6 @@ class SESEmailClient extends BaseEmailClient_1.BaseEmailClient {
                 lines.push(`Content-ID: <${att.contentId}>`);
             }
             lines.push('');
-            // Base64 encode in 76-char lines
             const b64 = att.content.toString('base64');
             for (let i = 0; i < b64.length; i += 76) {
                 lines.push(b64.slice(i, i + 76));

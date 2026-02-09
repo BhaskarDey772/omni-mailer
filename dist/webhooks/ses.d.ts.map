@@ -1,0 +1,1 @@
+{"version":3,"file":"ses.d.ts","sourceRoot":"","sources":["../../src/webhooks/ses.ts"],"names":[],"mappings":"AAEA,OAAO,EAAiB,sBAAsB,EAAE,mBAAmB,EAAE,cAAc,EAAE,MAAM,wBAAwB,CAAC;AAGpH,wBAAgB,wBAAwB,CAAC,OAAO,EAAE,sBAAsB,GAAG,cAAc,CAwCxF;AAED,wBAAgB,qBAAqB,CAAC,OAAO,EAAE,mBAAmB,GAAG,cAAc,CA0FlF"}
