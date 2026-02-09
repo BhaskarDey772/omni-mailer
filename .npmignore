@@ -1,0 +1,12 @@
+src/
+examples/
+tsconfig.json
+.env
+.env.*
+*.ts
+!dist/**/*.ts
+!dist/**/*.d.ts
+node_modules/
+.git/
+.github/
+.vscode/
