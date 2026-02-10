@@ -1,6 +1,6 @@
-import { EmailProvider } from './core.types';
-import { TrackingCallbacks, TrackingConfig, TrackingEventData } from './tracking.types';
-import { Request, Response } from 'express';
+import type { Request, Response } from 'express';
+import type { EmailProvider } from './core.types';
+import type { TrackingCallbacks, TrackingConfig, TrackingEventData } from './tracking.types';
 export type WebhookHandler = (req: Request, res: Response) => void | Promise<void>;
 export interface IncomingHandlerOptions {
     onEmail: (email: IncomingEmail) => void | Promise<void>;

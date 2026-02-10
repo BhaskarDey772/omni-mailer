@@ -1,8 +1,8 @@
-import * as fs from 'fs/promises';
-import * as path from 'path';
+import * as fs from 'node:fs/promises';
+import * as path from 'node:path';
 import axios from 'axios';
-import { AttachmentInput, ProcessedAttachment } from '../types';
 import { ValidationError } from '../errors';
+import type { AttachmentInput, ProcessedAttachment } from '../types';
 
 const MIME_TYPES: Record<string, string> = {
   '.pdf': 'application/pdf',
@@ -68,7 +68,8 @@ export class AttachmentHandler {
         return {
           filename: attachment.filename,
           content: Buffer.from(response.data),
-          contentType: contentType || response.headers['content-type'] || 'application/octet-stream',
+          contentType:
+            contentType || response.headers['content-type'] || 'application/octet-stream',
           contentId: attachment.contentId,
           inline: attachment.inline,
         };
@@ -80,6 +81,6 @@ export class AttachmentHandler {
   }
 
   static async processAll(attachments: AttachmentInput[]): Promise<ProcessedAttachment[]> {
-    return Promise.all(attachments.map((a) => this.process(a)));
+    return Promise.all(attachments.map((a) => AttachmentHandler.process(a)));
   }
 }

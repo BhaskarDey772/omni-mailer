@@ -1,6 +1,6 @@
 import { BaseEmailClient } from '../../core/BaseEmailClient';
-import { EmailData, TemplatedEmailData, SendResult, BulkSendResult, BulkSendOptions } from '../../types';
-import { MailgunConfig } from '../../types/provider.types';
+import type { BulkSendOptions, BulkSendResult, EmailData, SendResult, TemplatedEmailData } from '../../types';
+import type { MailgunConfig } from '../../types/provider.types';
 export declare class MailgunEmailClient extends BaseEmailClient {
     private mg;
     private domain;

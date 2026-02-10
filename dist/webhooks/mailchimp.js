@@ -13,9 +13,7 @@ function createMailchimpIncomingHandler(options) {
                 text: req.body.text || req.body.msg?.text,
                 html: req.body.html || req.body.msg?.html,
                 messageId: req.body.msg?._id || '',
-                timestamp: req.body.ts
-                    ? new Date(req.body.ts * 1000)
-                    : new Date(),
+                timestamp: req.body.ts ? new Date(req.body.ts * 1000) : new Date(),
             };
             await options.onEmail(email);
             res.status(200).send('OK');

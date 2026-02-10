@@ -1,39 +1,31 @@
-/**
- * omni-mailer Usage Examples
- *
- * This file demonstrates how to use the email service module
- * with different providers, attachments, tracking, and webhooks.
- */
-
+import express from 'express';
 import {
-  // Provider clients
-  SESEmailClient,
-  MailgunEmailClient,
-  SendGridEmailClient,
-  MailchimpEmailClient,
-  ZohoEmailClient,
-
-  // Webhook server
-  WebhookServer,
-
-  // Utilities
-  ConfigValidator,
-
-  // Types
-  type EmailData,
-  type SendResult,
-  type IncomingEmail,
-  type DeliveryEvent,
   type BounceEvent,
-  type OpenEvent,
   type ClickEvent,
+  type DeliveryEvent,
+  type EmailData,
+  type IncomingEmail,
+  MailchimpEmailClient,
+  MailgunEmailClient,
+  type OpenEvent,
+  SESEmailClient,
+  SendGridEmailClient,
+  ZohoEmailClient,
 } from '../src';
+import {
+  createMailchimpEventHandler,
+  createMailchimpIncomingHandler,
+} from '../src/webhooks/mailchimp';
+import { createMailgunEventHandler, createMailgunIncomingHandler } from '../src/webhooks/mailgun';
+import {
+  createSendGridEventHandler,
+  createSendGridIncomingHandler,
+} from '../src/webhooks/sendgrid';
+import { createSESEventHandler, createSESIncomingHandler } from '../src/webhooks/ses';
+import { createClickTrackingHandler, createOpenTrackingHandler } from '../src/webhooks/tracking';
 
-// ──────────────────────────────────────────────────────────
 // 1. INITIALIZE CLIENTS
-// ──────────────────────────────────────────────────────────
 
-// Option A: Direct config
 const ses = new SESEmailClient({
   provider: 'aws-ses',
   region: 'us-east-1',
@@ -63,15 +55,16 @@ const zoho = new ZohoEmailClient({
   password: 'YOUR_APP_PASSWORD',
 });
 
-// Option B: From environment variables
+// From environment variables:
 // const ses = new SESEmailClient(ConfigValidator.sesFromEnv());
 // const mailgun = new MailgunEmailClient(ConfigValidator.mailgunFromEnv());
+// const sendgrid = new SendGridEmailClient(ConfigValidator.sendgridFromEnv());
+// const mailchimp = new MailchimpEmailClient(ConfigValidator.mailchimpFromEnv());
+// const zoho = new ZohoEmailClient(ConfigValidator.zohoFromEnv());
 
-// ──────────────────────────────────────────────────────────
 // 2. SEND A SINGLE EMAIL
-// ──────────────────────────────────────────────────────────
 
-async function sendBasicEmail() {
+async function _sendBasicEmail() {
   const result = await ses.send({
     from: 'sender@yourdomain.com',
     to: 'recipient@example.com',
@@ -81,16 +74,13 @@ async function sendBasicEmail() {
   });
 
   console.log(result);
-  // { success: true, messageId: '...', provider: 'aws-ses' }
 }
 
-// ──────────────────────────────────────────────────────────
 // 3. SEND WITH CC, BCC, REPLY-TO
-// ──────────────────────────────────────────────────────────
 
-async function sendWithOptions() {
+async function _sendWithOptions() {
   const result = await mailgun.send({
-    from: { email: 'sender@yourdomain.com', name: 'Your App' },
+    from: { name: 'Your App', address: 'sender@yourdomain.com' },
     to: ['user1@example.com', 'user2@example.com'],
     cc: 'manager@example.com',
     bcc: ['audit@example.com'],
@@ -104,31 +94,26 @@ async function sendWithOptions() {
   console.log(result);
 }
 
-// ──────────────────────────────────────────────────────────
 // 4. SEND WITH ATTACHMENTS
-// ──────────────────────────────────────────────────────────
 
-async function sendWithAttachments() {
+async function _sendWithAttachments() {
   const result = await sendgrid.send({
     from: 'billing@yourdomain.com',
     to: 'customer@example.com',
     subject: 'Your Invoice',
     html: '<h1>Invoice Attached</h1><p>Please find your invoice attached.</p>',
     attachments: [
-      // From file path
       {
         type: 'file',
         filename: 'invoice.pdf',
         path: '/path/to/invoice.pdf',
       },
-      // From buffer
       {
         type: 'buffer',
         filename: 'data.csv',
         content: Buffer.from('name,email\nJohn,john@example.com'),
         contentType: 'text/csv',
       },
-      // From URL
       {
         type: 'url',
         filename: 'logo.png',
@@ -143,11 +128,9 @@ async function sendWithAttachments() {
   console.log(result);
 }
 
-// ──────────────────────────────────────────────────────────
 // 5. SEND BULK EMAILS
-// ──────────────────────────────────────────────────────────
 
-async function sendBulkEmails() {
+async function _sendBulkEmails() {
   const emails: EmailData[] = Array.from({ length: 100 }, (_, i) => ({
     from: 'newsletter@yourdomain.com',
     to: `user${i}@example.com`,
@@ -164,32 +147,29 @@ async function sendBulkEmails() {
     },
   });
 
-  console.log(`Sent: ${result.successful}, Failed: ${result.failed}, Duration: ${result.durationMs}ms`);
+  console.log(
+    `Sent: ${result.successful}, Failed: ${result.failed}, Duration: ${result.durationMs}ms`,
+  );
 }
 
-// ──────────────────────────────────────────────────────────
 // 6. SEND TEMPLATED EMAILS
-// ──────────────────────────────────────────────────────────
 
-async function sendTemplatedEmail() {
-  // SES template
-  const sesResult = await ses.sendTemplated({
+async function _sendTemplatedEmail() {
+  const _sesResult = await ses.sendTemplated({
     from: 'noreply@yourdomain.com',
     to: 'user@example.com',
     template: 'WelcomeTemplate',
     templateData: { name: 'John', plan: 'Premium' },
   });
 
-  // SendGrid dynamic template
-  const sgResult = await sendgrid.sendTemplated({
+  const _sgResult = await sendgrid.sendTemplated({
     from: 'noreply@yourdomain.com',
     to: 'user@example.com',
     template: 'd-abc123templateid',
     templateData: { name: 'John', plan: 'Premium' },
   });
 
-  // Mailchimp/Mandrill template
-  const mcResult = await mailchimp.sendTemplated({
+  const _mcResult = await mailchimp.sendTemplated({
     from: 'noreply@yourdomain.com',
     to: 'user@example.com',
     template: 'welcome-email',
@@ -197,18 +177,16 @@ async function sendTemplatedEmail() {
   });
 }
 
-// ──────────────────────────────────────────────────────────
 // 7. ENABLE OPEN/CLICK TRACKING
-// ──────────────────────────────────────────────────────────
 
-async function sendWithTracking() {
-  // Enable custom tracking (injects pixel + rewrites links)
+async function _sendWithTracking() {
   ses.enableTracking({
     baseUrl: 'https://yourdomain.com',
-    enabled: true,
+    trackOpens: true,
+    trackClicks: true,
   });
 
-  const result = await ses.send({
+  const _result = await ses.send({
     from: 'marketing@yourdomain.com',
     to: 'user@example.com',
     subject: 'Check out our new product!',
@@ -217,28 +195,12 @@ async function sendWithTracking() {
       <p>We're excited to announce our new product.</p>
       <a href="https://yourdomain.com/product">Learn More</a>
     `,
-    trackOpens: true,
-    trackClicks: true,
-  });
-
-  // For providers with native tracking (Mailgun, SendGrid, Mailchimp),
-  // just set trackOpens/trackClicks - they handle it server-side
-  const mgResult = await mailgun.send({
-    from: 'marketing@yourdomain.com',
-    to: 'user@example.com',
-    subject: 'Check out our new product!',
-    html: '<h1>New Product Launch</h1><a href="https://yourdomain.com/product">Learn More</a>',
-    trackOpens: true,
-    trackClicks: true,
   });
 }
 
-// ──────────────────────────────────────────────────────────
 // 8. PROVIDER FAILOVER
-// ──────────────────────────────────────────────────────────
 
-async function sendWithFailover(emailData: EmailData) {
-  // Try primary provider first, fall back to secondary
+async function _sendWithFailover(emailData: EmailData) {
   let result = await ses.send(emailData);
 
   if (!result.success) {
@@ -254,137 +216,226 @@ async function sendWithFailover(emailData: EmailData) {
   return result;
 }
 
-// ──────────────────────────────────────────────────────────
-// 9. WEBHOOK SERVER - RECEIVE EMAILS & TRACK EVENTS
-// ──────────────────────────────────────────────────────────
+// 9. MODULAR WEBHOOK HANDLERS — MOUNT ON YOUR OWN EXPRESS APP
 
-async function startWebhookServer() {
-  const server = new WebhookServer({
-    port: 3000,
+async function _startServerWithModularHandlers() {
+  const app = express();
+  app.use(express.json());
+  app.use(express.urlencoded({ extended: true }));
 
-    // Handle incoming emails from any provider
-    webhookCallbacks: {
-      onIncomingEmail: async (email: IncomingEmail) => {
-        console.log(`New email from ${email.from}`);
-        console.log(`Subject: ${email.subject}`);
-        console.log(`Provider: ${email.provider}`);
-        console.log(`Body: ${email.text}`);
-
-        // Save to YOUR database (no internal DB used)
-        // await db.emails.create({ ... });
-
-        // Check if it's a reply (conversation threading)
+  // SES webhooks (events delivered via SNS, auto-confirms subscriptions)
+  app.post(
+    '/webhooks/ses/incoming',
+    createSESIncomingHandler({
+      onEmail: async (email: IncomingEmail) => {
+        console.log(`SES incoming from ${email.from}: ${email.subject}`);
         if (email.inReplyTo) {
-          console.log(`This is a reply to: ${email.inReplyTo}`);
-          // await db.conversations.addReply(email.inReplyTo, email);
+          console.log(`Reply to: ${email.inReplyTo}`);
         }
+      },
+      onError: async (err) => console.error('SES incoming error:', err),
+    }),
+  );
 
-        // Handle attachments
+  app.post(
+    '/webhooks/ses/events',
+    createSESEventHandler({
+      onEvent: async (event) => {
+        console.log(`SES event: ${event.type} — ${event.messageId}`);
+      },
+      onError: async (err) => console.error('SES event error:', err),
+    }),
+  );
+
+  // Mailgun webhooks (with optional HMAC signature verification)
+  app.post(
+    '/webhooks/mailgun/incoming',
+    createMailgunIncomingHandler({
+      onEmail: async (email: IncomingEmail) => {
+        console.log(`Mailgun incoming from ${email.from}: ${email.subject}`);
         if (email.attachments) {
           for (const att of email.attachments) {
             console.log(`Attachment: ${att.filename} (${att.size} bytes)`);
-            // await storage.save(att.content || att.url);
           }
         }
       },
+      secret: process.env.MAILGUN_WEBHOOK_SECRET,
+    }),
+  );
 
-      onError: async (error, provider) => {
-        console.error(`Webhook error from ${provider}:`, error.message);
+  app.post(
+    '/webhooks/mailgun/events',
+    createMailgunEventHandler({
+      onEvent: async (event) => {
+        console.log(`Mailgun event: ${event.type} — ${event.recipient}`);
       },
-    },
+      secret: process.env.MAILGUN_WEBHOOK_SECRET,
+    }),
+  );
 
-    // Handle tracking events (delivery, opens, clicks, bounces)
-    trackingCallbacks: {
-      onDelivery: async (event: DeliveryEvent) => {
-        console.log(`Email ${event.messageId} delivered to ${event.recipient}`);
-        // await db.emails.updateStatus(event.messageId, 'delivered');
+  // SendGrid webhooks (handles batched JSON arrays)
+  app.post(
+    '/webhooks/sendgrid/incoming',
+    createSendGridIncomingHandler({
+      onEmail: async (email: IncomingEmail) => {
+        console.log(`SendGrid incoming from ${email.from}: ${email.subject}`);
       },
+    }),
+  );
 
-      onBounce: async (event: BounceEvent) => {
-        console.log(`Email ${event.messageId} bounced (${event.bounceType}): ${event.bounceReason}`);
-        // await db.emails.updateStatus(event.messageId, 'bounced');
-        // if (event.bounceType === 'hard') {
-        //   await db.contacts.markInvalid(event.recipient);
-        // }
+  app.post(
+    '/webhooks/sendgrid/events',
+    createSendGridEventHandler({
+      onEvent: async (event) => {
+        console.log(`SendGrid event: ${event.type} — ${event.recipient}`);
       },
+    }),
+  );
 
-      onOpen: async (event: OpenEvent) => {
-        console.log(`Email ${event.messageId} opened by ${event.recipient}`);
-        // await db.analytics.recordOpen(event.messageId);
+  // Mailchimp/Mandrill webhooks (handles mandrill_events form param and JSON)
+  app.post(
+    '/webhooks/mailchimp/incoming',
+    createMailchimpIncomingHandler({
+      onEmail: async (email: IncomingEmail) => {
+        console.log(`Mailchimp incoming from ${email.from}: ${email.subject}`);
       },
+    }),
+  );
 
-      onClick: async (event: ClickEvent) => {
-        console.log(`Link clicked in ${event.messageId}: ${event.url}`);
-        // await db.analytics.recordClick(event.messageId, event.url);
+  app.post(
+    '/webhooks/mailchimp/events',
+    createMailchimpEventHandler({
+      onEvent: async (event) => {
+        console.log(`Mailchimp event: ${event.type} — ${event.recipient}`);
       },
+    }),
+  );
 
-      onComplaint: async (event) => {
-        console.log(`Spam complaint for ${event.messageId} from ${event.recipient}`);
-        // await db.contacts.unsubscribe(event.recipient);
+  // Open & click tracking (serves 1x1 pixel / 302 redirect)
+  app.get(
+    '/track/open/:messageId',
+    createOpenTrackingHandler({
+      onEvent: async (event) => {
+        console.log(`Opened: ${event.messageId} from ${event.ipAddress}`);
       },
+    }),
+  );
 
-      onUnsubscribe: async (event) => {
-        console.log(`Unsubscribe for ${event.messageId} from ${event.recipient}`);
-        // await db.contacts.unsubscribe(event.recipient);
+  app.get(
+    '/track/click/:messageId',
+    createClickTrackingHandler({
+      onEvent: async (event) => {
+        const clickEvent = event as ClickEvent;
+        console.log(`Clicked: ${clickEvent.messageId} → ${clickEvent.url}`);
       },
+    }),
+  );
 
-      // Catch-all for any tracking event
-      onAny: async (event) => {
-        console.log(`[${event.type}] ${event.messageId} - ${event.recipient}`);
-      },
-    },
+  // Your own routes alongside the webhook handlers
+  app.get('/api/status', (_req, res) => res.json({ ok: true }));
 
-    // Security: verify webhook signatures
-    verifySignatures: true,
-    webhookSecrets: {
-      mailgun: process.env.MAILGUN_WEBHOOK_SECRET,
-      sendgrid: process.env.SENDGRID_WEBHOOK_SECRET,
-    },
+  app.listen(3000, () => {
+    console.log('Server running on http://localhost:3000');
   });
-
-  await server.start();
-  // Server now listening for:
-  // POST /webhooks/ses/incoming     - SES incoming emails (via SNS)
-  // POST /webhooks/mailgun/incoming - Mailgun incoming emails
-  // POST /webhooks/sendgrid/incoming - SendGrid inbound parse
-  // POST /webhooks/mailchimp/incoming - Mailchimp inbound
-  // POST /webhooks/custom/incoming  - Custom webhook format
-  // POST /webhooks/*/events         - Tracking events per provider
-  // GET  /track/open/:messageId     - Open tracking pixel
-  // GET  /track/click/:messageId    - Click tracking redirect
-  // GET  /health                    - Health check
 }
 
-// ──────────────────────────────────────────────────────────
-// 10. MOUNT WEBHOOK ON EXISTING EXPRESS APP
-// ──────────────────────────────────────────────────────────
+// 10. TRACKING EVENT HANDLING — DETAILED CALLBACKS
 
-async function mountOnExistingApp() {
-  const express = require('express');
+async function _startServerWithDetailedTracking() {
   const app = express();
+  app.use(express.json());
+  app.use(express.urlencoded({ extended: true }));
 
-  const webhookServer = new WebhookServer({
-    webhookCallbacks: {
-      onIncomingEmail: async (email) => {
-        console.log('Received:', email.subject);
-      },
-    },
+  const handleEvent = async (event: DeliveryEvent | BounceEvent | OpenEvent | ClickEvent) => {
+    switch (event.type) {
+      case 'delivered':
+        console.log(`Delivered: ${event.messageId} to ${event.recipient}`);
+        break;
+      case 'bounced': {
+        const bounce = event as BounceEvent;
+        console.log(`Bounced (${bounce.bounceType}): ${bounce.recipient} — ${bounce.bounceReason}`);
+        break;
+      }
+      case 'opened': {
+        const open = event as OpenEvent;
+        console.log(`Opened: ${open.messageId} by ${open.userAgent} from ${open.ipAddress}`);
+        break;
+      }
+      case 'clicked': {
+        const click = event as ClickEvent;
+        console.log(`Clicked: ${click.messageId} → ${click.url}`);
+        break;
+      }
+    }
+  };
+
+  app.post('/hooks/ses/events', createSESEventHandler({ onEvent: handleEvent }));
+  app.post(
+    '/hooks/mailgun/events',
+    createMailgunEventHandler({
+      onEvent: handleEvent,
+      secret: process.env.MAILGUN_WEBHOOK_SECRET,
+    }),
+  );
+  app.post('/hooks/sendgrid/events', createSendGridEventHandler({ onEvent: handleEvent }));
+  app.post('/hooks/mailchimp/events', createMailchimpEventHandler({ onEvent: handleEvent }));
+
+  app.get('/track/open/:messageId', createOpenTrackingHandler({ onEvent: handleEvent }));
+  app.get('/track/click/:messageId', createClickTrackingHandler({ onEvent: handleEvent }));
+
+  app.listen(3000, () => {
+    console.log('Tracking server running on http://localhost:3000');
   });
-
-  // Mount the webhook routes on your existing app
-  app.use(webhookServer.getApp());
-
-  // Add your own routes
-  app.get('/api/status', (_req: any, res: any) => res.json({ ok: true }));
-
-  app.listen(3000);
 }
 
-// ──────────────────────────────────────────────────────────
-// 11. ZOHO SMTP VERIFICATION
-// ──────────────────────────────────────────────────────────
+// 11. CONVERSATION THREADING
 
-async function verifyZohoConnection() {
+async function _startIncomingEmailServer() {
+  const app = express();
+  app.use(express.json());
+  app.use(express.urlencoded({ extended: true }));
+
+  const handleIncoming = async (email: IncomingEmail) => {
+    console.log(`From: ${email.from}`);
+    console.log(`To: ${email.to}`);
+    console.log(`Subject: ${email.subject}`);
+    console.log(`Message-ID: ${email.messageId}`);
+
+    if (email.inReplyTo) {
+      console.log(`Reply to: ${email.inReplyTo}`);
+      console.log(`Thread: ${email.references?.join(' → ')}`);
+      // await db.conversations.addReply(email.inReplyTo, email);
+    } else {
+      // New conversation
+      // await db.conversations.create({ emails: [email.messageId], subject: email.subject });
+    }
+
+    if (email.attachments) {
+      for (const att of email.attachments) {
+        console.log(`Attachment: ${att.filename} (${att.contentType}, ${att.size} bytes)`);
+      }
+    }
+  };
+
+  app.post('/incoming/ses', createSESIncomingHandler({ onEmail: handleIncoming }));
+  app.post(
+    '/incoming/mailgun',
+    createMailgunIncomingHandler({
+      onEmail: handleIncoming,
+      secret: process.env.MAILGUN_WEBHOOK_SECRET,
+    }),
+  );
+  app.post('/incoming/sendgrid', createSendGridIncomingHandler({ onEmail: handleIncoming }));
+  app.post('/incoming/mailchimp', createMailchimpIncomingHandler({ onEmail: handleIncoming }));
+
+  app.listen(3000, () => {
+    console.log('Incoming email server running on http://localhost:3000');
+  });
+}
+
+// 12. ZOHO SMTP VERIFICATION
+
+async function _verifyZohoConnection() {
   const isConnected = await zoho.verify();
   console.log(`Zoho SMTP connection: ${isConnected ? 'OK' : 'FAILED'}`);
 
@@ -397,6 +448,5 @@ async function verifyZohoConnection() {
     });
   }
 
-  // Clean up connection pool
   zoho.close();
 }

@@ -1,4 +1,4 @@
-import { TrackingConfig } from '../types/tracking.types';
+import type { TrackingConfig } from '../types/tracking.types';
 export declare class TrackingManager {
     private baseUrl;
     constructor(config: TrackingConfig);

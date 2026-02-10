@@ -1,6 +1,11 @@
-import { Request, Response } from 'express';
-import { IncomingEmail, IncomingHandlerOptions, EventHandlerOptions, WebhookHandler } from '../types/webhook.types';
-import { DeliveryEvent, BounceEvent, OpenEvent, ClickEvent } from '../types/tracking.types';
+import type { Request, Response } from 'express';
+import type { BounceEvent, ClickEvent, DeliveryEvent, OpenEvent } from '../types/tracking.types';
+import type {
+  EventHandlerOptions,
+  IncomingEmail,
+  IncomingHandlerOptions,
+  WebhookHandler,
+} from '../types/webhook.types';
 
 export function createSendGridIncomingHandler(options: IncomingHandlerOptions): WebhookHandler {
   return async (req: Request, res: Response): Promise<void> => {

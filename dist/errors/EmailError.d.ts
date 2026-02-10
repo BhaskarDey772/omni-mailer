@@ -1,4 +1,4 @@
-import { EmailProvider } from '../types';
+import type { EmailProvider } from '../types';
 export declare class EmailError extends Error {
     readonly provider: EmailProvider;
     readonly code: string;

@@ -1,6 +1,6 @@
 import { BaseEmailClient } from '../../core/BaseEmailClient';
-import { EmailData, TemplatedEmailData, SendResult } from '../../types';
-import { SESConfig } from '../../types/provider.types';
+import type { EmailData, SendResult, TemplatedEmailData } from '../../types';
+import type { SESConfig } from '../../types/provider.types';
 export declare class SESEmailClient extends BaseEmailClient {
     private client;
     constructor(config: SESConfig);

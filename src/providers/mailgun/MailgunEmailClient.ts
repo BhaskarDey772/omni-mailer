@@ -1,15 +1,15 @@
-import Mailgun from 'mailgun.js';
 import FormData from 'form-data';
+import Mailgun from 'mailgun.js';
 import { BaseEmailClient } from '../../core/BaseEmailClient';
-import {
-  EmailData,
-  TemplatedEmailData,
-  SendResult,
-  BulkSendResult,
-  BulkSendOptions,
-} from '../../types';
-import { MailgunConfig } from '../../types/provider.types';
 import { ValidationError } from '../../errors';
+import type {
+  BulkSendOptions,
+  BulkSendResult,
+  EmailData,
+  SendResult,
+  TemplatedEmailData,
+} from '../../types';
+import type { MailgunConfig } from '../../types/provider.types';
 
 export class MailgunEmailClient extends BaseEmailClient {
   private mg: ReturnType<InstanceType<typeof Mailgun>['client']>;
@@ -46,8 +46,12 @@ export class MailgunEmailClient extends BaseEmailClient {
         ...(emailData.cc && { cc: this.toEmailStrings(emailData.cc) }),
         ...(emailData.bcc && { bcc: this.toEmailStrings(emailData.bcc) }),
         ...(emailData.tags && { 'o:tag': emailData.tags }),
-        ...(emailData.trackOpens !== undefined && { 'o:tracking-opens': emailData.trackOpens ? 'yes' : 'no' }),
-        ...(emailData.trackClicks !== undefined && { 'o:tracking-clicks': emailData.trackClicks ? 'yes' : 'no' }),
+        ...(emailData.trackOpens !== undefined && {
+          'o:tracking-opens': emailData.trackOpens ? 'yes' : 'no',
+        }),
+        ...(emailData.trackClicks !== undefined && {
+          'o:tracking-clicks': emailData.trackClicks ? 'yes' : 'no',
+        }),
       };
 
       if (emailData.headers) {

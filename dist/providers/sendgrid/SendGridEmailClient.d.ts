@@ -1,6 +1,6 @@
 import { BaseEmailClient } from '../../core/BaseEmailClient';
-import { EmailData, TemplatedEmailData, SendResult, BulkSendResult, BulkSendOptions } from '../../types';
-import { SendGridConfig } from '../../types/provider.types';
+import type { BulkSendOptions, BulkSendResult, EmailData, SendResult, TemplatedEmailData } from '../../types';
+import type { SendGridConfig } from '../../types/provider.types';
 export declare class SendGridEmailClient extends BaseEmailClient {
     constructor(config: SendGridConfig);
     send(emailData: EmailData): Promise<SendResult>;

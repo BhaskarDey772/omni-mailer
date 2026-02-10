@@ -1,10 +1,14 @@
-import { Request, Response } from 'express';
-import { OpenTrackingHandlerOptions, ClickTrackingHandlerOptions, WebhookHandler } from '../types/webhook.types';
-import { OpenEvent, ClickEvent } from '../types/tracking.types';
+import type { Request, Response } from 'express';
+import type { ClickEvent, OpenEvent } from '../types/tracking.types';
+import type {
+  ClickTrackingHandlerOptions,
+  OpenTrackingHandlerOptions,
+  WebhookHandler,
+} from '../types/webhook.types';
 
 const TRACKING_PIXEL = Buffer.from(
   'R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7',
-  'base64'
+  'base64',
 );
 
 export function createOpenTrackingHandler(options: OpenTrackingHandlerOptions): WebhookHandler {

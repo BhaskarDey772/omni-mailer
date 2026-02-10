@@ -1,6 +1,6 @@
 # omni-mailer
 
-A universal TypeScript email service supporting **AWS SES**, **Mailgun**, **SendGrid**, **Mailchimp (Mandrill)**, and **Zoho** — with built-in tracking, webhooks, attachments, and bulk sending.
+A universal TypeScript email service supporting **AWS SES**, **Mailgun**, **SendGrid**, **Mailchimp (Mandrill)**, and **Zoho** — with built-in tracking, modular webhooks, attachments, and bulk sending.
 
 ## Table of Contents
 
@@ -9,27 +9,28 @@ A universal TypeScript email service supporting **AWS SES**, **Mailgun**, **Send
 - [Provider Setup](#provider-setup)
   - [AWS SES](#aws-ses)
   - [Mailgun](#mailgun)
+  - [SendGrid](#sendgrid)
+  - [Mailchimp (Mandrill)](#mailchimp-mandrill)
+  - [Zoho](#zoho)
 - [Sending Emails](#sending-emails)
   - [Single Email](#single-email)
   - [HTML Email](#html-email)
   - [Templated Email](#templated-email)
   - [Bulk Email](#bulk-email)
 - [Attachments](#attachments)
-  - [File Attachment](#file-attachment)
-  - [Buffer Attachment](#buffer-attachment)
-  - [URL Attachment](#url-attachment)
-  - [Inline Images](#inline-images)
 - [Tracking](#tracking)
   - [Enable Open & Click Tracking](#enable-open--click-tracking)
-  - [Webhook Server Setup](#webhook-server-setup)
-  - [Track Deliveries](#track-deliveries)
-  - [Track Opens](#track-opens)
-  - [Track Clicks](#track-clicks)
-  - [Track Bounces & Complaints](#track-bounces--complaints)
-- [Conversation Threading](#conversation-threading)
-  - [Incoming Email Handling](#incoming-email-handling)
-  - [Reply Threading](#reply-threading)
-- [Complete Working Examples](#complete-working-examples)
+  - [Open & Click Tracking Handlers](#open--click-tracking-handlers)
+- [Webhooks](#webhooks)
+  - [Modular Handlers](#modular-handlers)
+  - [Sub-path Imports](#sub-path-imports)
+  - [SES Webhooks](#ses-webhooks)
+  - [Mailgun Webhooks](#mailgun-webhooks)
+  - [SendGrid Webhooks](#sendgrid-webhooks)
+  - [Mailchimp Webhooks](#mailchimp-webhooks)
+  - [WebhookServer (Convenience Wrapper)](#webhookserver-convenience-wrapper)
+- [Incoming Email & Conversation Threading](#incoming-email--conversation-threading)
+- [Complete Examples](#complete-examples)
   - [SES Full Example](#ses-full-example)
   - [Mailgun Full Example](#mailgun-full-example)
 - [Error Handling](#error-handling)
@@ -51,9 +52,8 @@ npm install omni-mailer
 ## Quick Start
 
 ```typescript
-import { SESEmailClient, MailgunEmailClient } from 'omni-mailer';
+import { SESEmailClient } from 'omni-mailer';
 
-// Pick your provider
 const mailer = new SESEmailClient({
   provider: 'aws-ses',
   region: 'us-east-1',
@@ -61,7 +61,6 @@ const mailer = new SESEmailClient({
   secretAccessKey: 'YOUR_SECRET_KEY',
 });
 
-// Send an email
 const result = await mailer.send({
   from: 'you@yourdomain.com',
   to: 'recipient@example.com',
@@ -86,8 +85,6 @@ console.log(result);
 3. IAM credentials with `ses:SendEmail` and `ses:SendRawEmail` permissions
 4. If in SES sandbox, recipient emails must also be verified
 
-#### Direct Configuration
-
 ```typescript
 import { SESEmailClient } from 'omni-mailer';
 
@@ -96,14 +93,12 @@ const ses = new SESEmailClient({
   region: 'us-east-1',
   accessKeyId: 'AKIAIOSFODNN7EXAMPLE',
   secretAccessKey: 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY',
-  // sessionToken: '...',  // optional, for temporary credentials
 });
 ```
 
-#### From Environment Variables
+From environment variables:
 
 ```bash
-# .env
 AWS_REGION=us-east-1
 AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE
 AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
@@ -111,20 +106,12 @@ AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
 
 ```typescript
 import { SESEmailClient, ConfigValidator } from 'omni-mailer';
-
 const ses = new SESEmailClient(ConfigValidator.sesFromEnv());
 ```
 
 ---
 
 ### Mailgun
-
-**Prerequisites:**
-1. A Mailgun account
-2. A verified domain in Mailgun
-3. Your API key from Mailgun dashboard
-
-#### Direct Configuration
 
 ```typescript
 import { MailgunEmailClient } from 'omni-mailer';
@@ -133,30 +120,93 @@ const mailgun = new MailgunEmailClient({
   provider: 'mailgun',
   apiKey: 'key-XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX',
   domain: 'mg.yourdomain.com',
-  // host: 'api.eu.mailgun.net',  // for EU region
+  // host: 'api.eu.mailgun.net', // for EU region
 });
 ```
 
-#### From Environment Variables
+From environment variables:
 
 ```bash
-# .env
 MAILGUN_API_KEY=key-XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 MAILGUN_DOMAIN=mg.yourdomain.com
-# MAILGUN_HOST=api.eu.mailgun.net  # optional, for EU
 ```
 
 ```typescript
 import { MailgunEmailClient, ConfigValidator } from 'omni-mailer';
-
 const mailgun = new MailgunEmailClient(ConfigValidator.mailgunFromEnv());
 ```
 
 ---
 
+### SendGrid
+
+```typescript
+import { SendGridEmailClient } from 'omni-mailer';
+
+const sendgrid = new SendGridEmailClient({
+  provider: 'sendgrid',
+  apiKey: 'SG.XXXXXXXXXXXXXXXXXXXX',
+});
+```
+
+From environment variables: `SENDGRID_API_KEY`
+
+```typescript
+import { SendGridEmailClient, ConfigValidator } from 'omni-mailer';
+const sendgrid = new SendGridEmailClient(ConfigValidator.sendgridFromEnv());
+```
+
+---
+
+### Mailchimp (Mandrill)
+
+```typescript
+import { MailchimpEmailClient } from 'omni-mailer';
+
+const mailchimp = new MailchimpEmailClient({
+  provider: 'mailchimp',
+  apiKey: 'YOUR_MANDRILL_API_KEY',
+});
+```
+
+From environment variables: `MAILCHIMP_API_KEY`
+
+```typescript
+import { MailchimpEmailClient, ConfigValidator } from 'omni-mailer';
+const mailchimp = new MailchimpEmailClient(ConfigValidator.mailchimpFromEnv());
+```
+
+---
+
+### Zoho
+
+```typescript
+import { ZohoEmailClient } from 'omni-mailer';
+
+const zoho = new ZohoEmailClient({
+  provider: 'zoho',
+  user: 'you@zoho.com',
+  password: 'your-app-password',
+  // host: 'smtp.zoho.com',
+  // port: 465,
+  // secure: true,
+});
+```
+
+From environment variables: `ZOHO_USER`, `ZOHO_PASSWORD`
+
+```typescript
+import { ZohoEmailClient, ConfigValidator } from 'omni-mailer';
+const zoho = new ZohoEmailClient(ConfigValidator.zohoFromEnv());
+```
+
+> Zoho does not support server-side templates. Render your template to HTML and use `send()`.
+
+---
+
 ## Sending Emails
 
-All providers share the same API for sending emails.
+All providers share the same API.
 
 ### Single Email
 
@@ -167,10 +217,6 @@ const result = await mailer.send({
   subject: 'Hello!',
   text: 'Plain text body',
 });
-
-console.log(result.success);    // true
-console.log(result.messageId);  // unique message ID
-console.log(result.provider);   // 'aws-ses' or 'mailgun'
 ```
 
 ### HTML Email
@@ -186,36 +232,21 @@ const result = await mailer.send({
   bcc: 'bcc@example.com',
   replyTo: 'support@yourdomain.com',
   subject: 'Weekly Newsletter',
-  html: `
-    <html>
-      <body>
-        <h1>Weekly Update</h1>
-        <p>Here's what happened this week...</p>
-        <a href="https://yourdomain.com/read-more">Read More</a>
-      </body>
-    </html>
-  `,
+  html: '<h1>Weekly Update</h1><p>Here\'s what happened this week...</p>',
   text: 'Weekly Update\n\nHere\'s what happened this week...',
-  headers: {
-    'X-Custom-Header': 'custom-value',
-  },
+  headers: { 'X-Custom-Header': 'custom-value' },
   tags: ['newsletter', 'weekly'],
-  metadata: {
-    campaignId: 'week-42',
-    userId: '12345',
-  },
+  metadata: { campaignId: 'week-42', userId: '12345' },
 });
 ```
 
 ### Templated Email
 
 ```typescript
-// Using provider-side templates (Mailgun, SendGrid, Mailchimp)
 const result = await mailer.sendTemplated({
   from: 'noreply@yourdomain.com',
   to: 'user@example.com',
-  subject: 'Welcome!',
-  templateId: 'welcome-template',
+  template: 'welcome-template',
   templateData: {
     firstName: 'John',
     activationLink: 'https://yourdomain.com/activate?token=abc',
@@ -223,9 +254,9 @@ const result = await mailer.sendTemplated({
 });
 ```
 
-### Bulk Email
+Supported by Mailgun, SendGrid, and Mailchimp.
 
-Send hundreds or thousands of emails with concurrency control, batching, and retry logic.
+### Bulk Email
 
 ```typescript
 const emails = [
@@ -241,122 +272,56 @@ const emails = [
     subject: 'Your Report',
     html: '<p>Hi User 2, here is your report.</p>',
   },
-  // ... hundreds more
 ];
 
 const bulkResult = await mailer.sendBulk(emails, {
-  concurrency: 5,       // max parallel sends
-  batchSize: 100,       // emails per batch
-  delayMs: 100,         // delay between batches (ms)
-  retryAttempts: 3,     // retry failed sends
+  concurrency: 5,
+  batchSize: 100,
+  delayMs: 100,
+  retryAttempts: 3,
   onProgress: (progress) => {
     console.log(`${progress.sent}/${progress.total} sent, ${progress.failed} failed`);
   },
 });
-
-console.log(bulkResult);
-// {
-//   total: 200,
-//   successful: 198,
-//   failed: 2,
-//   results: [ { success: true, messageId: '...' }, ... ],
-//   errors: [ { email: {...}, error: Error }, ... ]
-// }
+// { total: 2, successful: 2, failed: 0, results: [...], durationMs: 1234 }
 ```
 
 ---
 
 ## Attachments
 
-Attachments work the same across all providers.
-
-### File Attachment
-
-Attach a file from the filesystem:
+Attachments work the same across all providers. Three types supported:
 
 ```typescript
-const result = await mailer.send({
+await mailer.send({
   from: 'sender@yourdomain.com',
   to: 'recipient@example.com',
-  subject: 'Invoice Attached',
-  text: 'Please find your invoice attached.',
+  subject: 'Files',
+  text: 'See attached.',
   attachments: [
-    {
-      type: 'file',
-      filename: 'invoice-2024.pdf',
-      path: '/path/to/invoice-2024.pdf',
-      // contentType auto-detected from extension
-    },
-  ],
-});
-```
+    // File from disk
+    { type: 'file', filename: 'report.pdf', path: './report.pdf' },
 
-### Buffer Attachment
-
-Attach in-memory data (e.g., dynamically generated content):
-
-```typescript
-const csvContent = 'Name,Email\nJohn,john@example.com\nJane,jane@example.com';
-
-const result = await mailer.send({
-  from: 'sender@yourdomain.com',
-  to: 'recipient@example.com',
-  subject: 'Export Data',
-  text: 'Your data export is attached.',
-  attachments: [
+    // In-memory buffer
     {
       type: 'buffer',
-      filename: 'users-export.csv',
-      content: Buffer.from(csvContent, 'utf-8'),
+      filename: 'data.csv',
+      content: Buffer.from('Name,Email\nJohn,john@example.com'),
       contentType: 'text/csv',
     },
-  ],
-});
-```
 
-### URL Attachment
-
-Attach a file from a remote URL (downloaded automatically):
-
-```typescript
-const result = await mailer.send({
-  from: 'sender@yourdomain.com',
-  to: 'recipient@example.com',
-  subject: 'Contract for Review',
-  text: 'Please review the attached contract.',
-  attachments: [
+    // Remote URL (downloaded automatically)
     {
       type: 'url',
       filename: 'contract.pdf',
       url: 'https://yourdomain.com/documents/contract.pdf',
     },
-  ],
-});
-```
 
-### Inline Images
-
-Embed images directly in your HTML using `cid:` references:
-
-```typescript
-const result = await mailer.send({
-  from: 'sender@yourdomain.com',
-  to: 'recipient@example.com',
-  subject: 'Check out our logo',
-  html: `
-    <html>
-      <body>
-        <h1>Welcome!</h1>
-        <img src="cid:company-logo" alt="Logo" width="200" />
-        <p>Thanks for joining us.</p>
-      </body>
-    </html>
-  `,
-  attachments: [
+    // Inline image (referenced via cid: in HTML)
     {
       type: 'file',
       filename: 'logo.png',
-      path: '/path/to/logo.png',
+      path: './logo.png',
       contentId: 'company-logo',
       inline: true,
     },
@@ -364,30 +329,7 @@ const result = await mailer.send({
 });
 ```
 
-### Multiple Attachments
-
-```typescript
-const result = await mailer.send({
-  from: 'sender@yourdomain.com',
-  to: 'recipient@example.com',
-  subject: 'Project Files',
-  text: 'All project files attached.',
-  attachments: [
-    { type: 'file', filename: 'report.pdf', path: './report.pdf' },
-    { type: 'file', filename: 'data.xlsx', path: './data.xlsx' },
-    {
-      type: 'buffer',
-      filename: 'summary.txt',
-      content: Buffer.from('Project completed successfully.'),
-    },
-    {
-      type: 'url',
-      filename: 'reference.pdf',
-      url: 'https://example.com/docs/reference.pdf',
-    },
-  ],
-});
-```
+Reference inline images in HTML with `<img src="cid:company-logo" />`.
 
 ---
 
@@ -395,310 +337,322 @@ const result = await mailer.send({
 
 ### Enable Open & Click Tracking
 
-Before sending, enable tracking on your client. The `baseUrl` must be a publicly accessible URL where your webhook server runs.
+Enable tracking on your email client. The `baseUrl` should point to where your tracking endpoints are served.
 
 ```typescript
-const mailer = new SESEmailClient({
-  provider: 'aws-ses',
-  region: 'us-east-1',
-  accessKeyId: 'YOUR_KEY',
-  secretAccessKey: 'YOUR_SECRET',
-});
-
-// Enable tracking — this injects a 1x1 pixel for opens
-// and rewrites links for click tracking
 mailer.enableTracking({
-  baseUrl: 'https://tracking.yourdomain.com',
+  baseUrl: 'https://yourdomain.com',
   trackOpens: true,
   trackClicks: true,
 });
 
-// Now send — tracking pixels and links are injected automatically
 await mailer.send({
   from: 'sender@yourdomain.com',
   to: 'recipient@example.com',
   subject: 'Tracked Email',
-  html: `
-    <html>
-      <body>
-        <p>Click <a href="https://yourdomain.com/offer">here</a> for our offer.</p>
-      </body>
-    </html>
-  `,
+  html: '<p>Click <a href="https://yourdomain.com/offer">here</a> for our offer.</p>',
 });
-// The HTML is automatically modified:
+// HTML is automatically modified:
 // - A 1x1 tracking pixel is injected before </body>
-// - The <a> link is rewritten to pass through /track/click/:messageId
+// - Links are rewritten to pass through your click tracking endpoint
 ```
 
-### Webhook Server Setup
+### Open & Click Tracking Handlers
 
-The `WebhookServer` receives tracking events from your email providers and serves the open pixel/click redirect endpoints.
-
-```typescript
-import { WebhookServer } from 'omni-mailer';
-
-const webhookServer = new WebhookServer({
-  port: 3000,
-  basePath: '/webhooks',
-  trackingConfig: {
-    baseUrl: 'https://tracking.yourdomain.com',
-  },
-  trackingCallbacks: {
-    onDelivery: async (event) => {
-      console.log(`Delivered to ${event.recipient}`, event.messageId);
-      // Save to your database
-    },
-    onBounce: async (event) => {
-      console.log(`Bounced: ${event.recipient}`, event.bounceType, event.bounceReason);
-      // Remove from mailing list if hard bounce
-      if (event.bounceType === 'hard') {
-        // await removeFromMailingList(event.recipient);
-      }
-    },
-    onOpen: async (event) => {
-      console.log(`Opened by ${event.recipient}`, event.userAgent);
-      // Track engagement
-    },
-    onClick: async (event) => {
-      console.log(`Clicked by ${event.recipient}`, event.url);
-      // Track link engagement
-    },
-    onComplaint: async (event) => {
-      console.log(`Complaint from ${event.recipient}`);
-      // Immediately unsubscribe
-    },
-    onUnsubscribe: async (event) => {
-      console.log(`Unsubscribed: ${event.recipient}`);
-    },
-    onAny: async (event) => {
-      // Catch-all for any tracking event
-      console.log(`Event: ${event.type}`, event);
-    },
-  },
-});
-
-await webhookServer.start();
-console.log('Webhook server running on port 3000');
-```
-
-### Track Deliveries
-
-**How it works:** Your email provider sends a webhook when the recipient's mail server accepts the email.
-
-**SES:** Configure SNS topic → POST to `https://yourdomain.com/webhooks/ses/events`
-**Mailgun:** Dashboard → Webhooks → Delivered → `https://yourdomain.com/webhooks/mailgun/events`
+Mount the tracking handlers on your Express app at any route you want:
 
 ```typescript
-trackingCallbacks: {
-  onDelivery: async (event) => {
-    // event.type        → 'delivered'
-    // event.messageId   → 'abc123'
-    // event.recipient   → 'user@example.com'
-    // event.provider    → 'aws-ses' | 'mailgun'
-    // event.timestamp   → Date
-    // event.smtpResponse → '250 OK' (delivery-specific)
+import express from 'express';
+import { createOpenTrackingHandler, createClickTrackingHandler } from 'omni-mailer/webhooks/tracking';
 
-    await db.emailLogs.update({
-      where: { messageId: event.messageId },
-      data: { status: 'delivered', deliveredAt: event.timestamp },
-    });
+const app = express();
+
+app.get('/track/open/:messageId', createOpenTrackingHandler({
+  onEvent: async (event) => {
+    // event.type → 'opened'
+    // event.messageId, event.userAgent, event.ipAddress, event.timestamp
   },
-},
-```
+}));
 
-### Track Opens
-
-**How it works:** A 1x1 transparent pixel image is injected into the HTML. When the recipient's email client loads images, it hits `/track/open/:messageId`, which triggers the `onOpen` callback and serves the pixel.
-
-```typescript
-trackingCallbacks: {
-  onOpen: async (event) => {
-    // event.type      → 'opened'
-    // event.messageId → 'abc123'
-    // event.recipient → 'user@example.com'
-    // event.userAgent → 'Mozilla/5.0...' (email client info)
-    // event.ipAddress → '203.0.113.42'
-    // event.timestamp → Date
-
-    await db.emailLogs.update({
-      where: { messageId: event.messageId },
-      data: {
-        opened: true,
-        openedAt: event.timestamp,
-        openCount: { increment: 1 },
-      },
-    });
+app.get('/track/click/:messageId', createClickTrackingHandler({
+  onEvent: async (event) => {
+    // event.type → 'clicked'
+    // event.messageId, event.url, event.userAgent, event.ipAddress
+    // Automatically redirects (302) to the original URL
   },
-},
-```
-
-### Track Clicks
-
-**How it works:** Links in the HTML are rewritten to pass through `/track/click/:messageId?url=<original>`. When clicked, the server records the event and redirects (302) to the original URL.
-
-```typescript
-trackingCallbacks: {
-  onClick: async (event) => {
-    // event.type      → 'clicked'
-    // event.messageId → 'abc123'
-    // event.recipient → 'user@example.com'
-    // event.url       → 'https://yourdomain.com/offer' (original URL)
-    // event.userAgent → 'Mozilla/5.0...'
-    // event.ipAddress → '203.0.113.42'
-    // event.timestamp → Date
-
-    await db.clickEvents.create({
-      data: {
-        messageId: event.messageId,
-        url: event.url,
-        clickedAt: event.timestamp,
-      },
-    });
-  },
-},
-```
-
-### Track Bounces & Complaints
-
-```typescript
-trackingCallbacks: {
-  onBounce: async (event) => {
-    // event.bounceType     → 'hard' | 'soft'
-    // event.bounceReason   → 'User unknown'
-    // event.diagnosticCode → 'smtp; 550 5.1.1'
-
-    if (event.bounceType === 'hard') {
-      await db.subscribers.update({
-        where: { email: event.recipient },
-        data: { status: 'bounced', active: false },
-      });
-    }
-  },
-  onComplaint: async (event) => {
-    // User marked your email as spam
-    await db.subscribers.update({
-      where: { email: event.recipient },
-      data: { status: 'complained', active: false },
-    });
-  },
-},
+}));
 ```
 
 ---
 
-## Conversation Threading
+## Webhooks
 
-### Incoming Email Handling
+omni-mailer provides **modular webhook handler factories** — standalone functions that return Express-compatible `(req, res)` handlers. Mount them on your own server at any URL. Import only the providers you need for smaller bundles.
 
-Set up webhook endpoints to receive incoming emails and track conversations.
+### Modular Handlers
+
+Each handler factory takes an options object with callbacks and returns an Express handler:
+
+```typescript
+import express from 'express';
+import { createSESEventHandler, createSESIncomingHandler } from 'omni-mailer/webhooks/ses';
+import { createMailgunEventHandler, createMailgunIncomingHandler } from 'omni-mailer/webhooks/mailgun';
+import { createOpenTrackingHandler, createClickTrackingHandler } from 'omni-mailer/webhooks/tracking';
+
+const app = express();
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+app.post('/my/ses/events', createSESEventHandler({
+  onEvent: async (event) => console.log(event.type, event.messageId),
+  onError: async (err) => console.error(err),
+}));
+
+app.post('/my/ses/incoming', createSESIncomingHandler({
+  onEmail: async (email) => console.log(email.from, email.subject),
+  onError: async (err) => console.error(err),
+}));
+
+app.post('/my/mailgun/events', createMailgunEventHandler({
+  onEvent: async (event) => console.log(event.type, event.recipient),
+  secret: process.env.MAILGUN_WEBHOOK_SECRET,
+}));
+
+app.post('/my/mailgun/incoming', createMailgunIncomingHandler({
+  onEmail: async (email) => console.log(email.from, email.subject),
+  secret: process.env.MAILGUN_WEBHOOK_SECRET,
+}));
+
+app.get('/track/open/:messageId', createOpenTrackingHandler({
+  onEvent: async (event) => console.log('Opened:', event.messageId),
+}));
+
+app.get('/track/click/:messageId', createClickTrackingHandler({
+  onEvent: async (event) => console.log('Clicked:', event.url),
+}));
+
+app.listen(3000);
+```
+
+### Sub-path Imports
+
+Import only what you need — each provider is a separate module:
+
+```typescript
+import { createSESIncomingHandler, createSESEventHandler } from 'omni-mailer/webhooks/ses';
+import { createMailgunIncomingHandler, createMailgunEventHandler } from 'omni-mailer/webhooks/mailgun';
+import { createSendGridIncomingHandler, createSendGridEventHandler } from 'omni-mailer/webhooks/sendgrid';
+import { createMailchimpIncomingHandler, createMailchimpEventHandler } from 'omni-mailer/webhooks/mailchimp';
+import { createOpenTrackingHandler, createClickTrackingHandler } from 'omni-mailer/webhooks/tracking';
+```
+
+Or import all handlers at once:
+
+```typescript
+import { createSESEventHandler, createMailgunEventHandler, ... } from 'omni-mailer/webhooks';
+```
+
+### SES Webhooks
+
+SES delivers events via SNS. The handlers auto-confirm SNS subscriptions.
+
+**AWS Setup:**
+1. Create an SNS topic
+2. Add an HTTPS subscription pointing to your endpoint
+3. Configure SES to publish events (Delivery, Bounce, Complaint, Open, Click) to the SNS topic
+4. For incoming emails: configure SES Receipt Rules → publish to SNS → point subscription to your incoming endpoint
+
+```typescript
+import { createSESEventHandler, createSESIncomingHandler } from 'omni-mailer/webhooks/ses';
+
+app.post('/hooks/ses/events', createSESEventHandler({
+  onEvent: async (event) => {
+    // event.type: 'delivered' | 'bounced' | 'complained' | 'opened' | 'clicked'
+    // event.messageId, event.recipient, event.timestamp, event.provider
+    // For bounces: event.bounceType ('hard' | 'soft'), event.bounceReason
+    // For opens: event.userAgent, event.ipAddress
+    // For clicks: event.url, event.userAgent, event.ipAddress
+  },
+}));
+
+app.post('/hooks/ses/incoming', createSESIncomingHandler({
+  onEmail: async (email) => {
+    // email.from, email.to, email.subject, email.messageId
+    // email.timestamp, email.headers
+  },
+}));
+```
+
+### Mailgun Webhooks
+
+Supports optional HMAC-SHA256 signature verification.
+
+**Mailgun Dashboard Setup:**
+1. Go to Sending → Webhooks
+2. Add your endpoint URLs for the events you want
+
+```typescript
+import { createMailgunEventHandler, createMailgunIncomingHandler } from 'omni-mailer/webhooks/mailgun';
+
+app.post('/hooks/mailgun/events', createMailgunEventHandler({
+  onEvent: async (event) => {
+    // event.type: 'delivered' | 'bounced' | 'opened' | 'clicked' | 'complained' | 'unsubscribed'
+  },
+  secret: process.env.MAILGUN_WEBHOOK_SECRET,
+}));
+
+app.post('/hooks/mailgun/incoming', createMailgunIncomingHandler({
+  onEmail: async (email) => {
+    // email.from, email.to, email.subject, email.text, email.html
+    // email.inReplyTo, email.references (for threading)
+  },
+  secret: process.env.MAILGUN_WEBHOOK_SECRET,
+}));
+```
+
+### SendGrid Webhooks
+
+SendGrid sends events as a batched JSON array.
+
+**SendGrid Setup:**
+1. Settings → Mail Settings → Event Webhook
+2. Set endpoint URL, select events
+
+```typescript
+import { createSendGridEventHandler, createSendGridIncomingHandler } from 'omni-mailer/webhooks/sendgrid';
+
+app.post('/hooks/sendgrid/events', createSendGridEventHandler({
+  onEvent: async (event) => {
+    // event.type: 'delivered' | 'bounced' | 'opened' | 'clicked' | 'complained' | 'unsubscribed'
+  },
+}));
+
+app.post('/hooks/sendgrid/incoming', createSendGridIncomingHandler({
+  onEmail: async (email) => { /* Inbound Parse webhook */ },
+}));
+```
+
+### Mailchimp Webhooks
+
+Handles both `mandrill_events` form parameter and direct JSON body.
+
+**Mandrill Setup:**
+1. Settings → Webhooks
+2. Add endpoint URL, select triggers
+
+```typescript
+import { createMailchimpEventHandler, createMailchimpIncomingHandler } from 'omni-mailer/webhooks/mailchimp';
+
+app.post('/hooks/mailchimp/events', createMailchimpEventHandler({
+  onEvent: async (event) => {
+    // event.type: 'delivered' | 'bounced' | 'opened' | 'clicked' | 'complained' | 'unsubscribed'
+  },
+}));
+
+app.post('/hooks/mailchimp/incoming', createMailchimpIncomingHandler({
+  onEmail: async (email) => { /* Mandrill inbound email */ },
+}));
+```
+
+### WebhookServer (Convenience Wrapper)
+
+If you want a quick all-in-one setup, `WebhookServer` wraps the modular handlers into a standalone Express server. It uses the same handler factories internally.
 
 ```typescript
 import { WebhookServer } from 'omni-mailer';
 
 const server = new WebhookServer({
   port: 3000,
+  basePath: '/webhooks',
   webhookCallbacks: {
     onIncomingEmail: async (email) => {
-      console.log('New email received:');
-      console.log('  From:', email.from);
-      console.log('  To:', email.to);
-      console.log('  Subject:', email.subject);
-      console.log('  Text:', email.text);
-      console.log('  HTML:', email.html);
-      console.log('  Message-ID:', email.messageId);
-      console.log('  In-Reply-To:', email.inReplyTo);      // parent message
-      console.log('  References:', email.references);       // full thread chain
-      console.log('  Attachments:', email.attachments?.length);
-
-      // Save to database
-      await db.emails.create({
-        data: {
-          messageId: email.messageId,
-          from: email.from,
-          to: email.to,
-          subject: email.subject,
-          body: email.text,
-          html: email.html,
-          threadId: email.inReplyTo || email.messageId,  // group by thread
-          references: email.references,
-        },
-      });
+      console.log('Incoming:', email.from, email.subject);
     },
     onError: async (error, provider) => {
-      console.error(`Webhook error from ${provider}:`, error.message);
+      console.error(`Error from ${provider}:`, error.message);
     },
+  },
+  trackingCallbacks: {
+    onDelivery: async (event) => console.log('Delivered:', event.recipient),
+    onBounce: async (event) => console.log('Bounced:', event.recipient, event.bounceType),
+    onOpen: async (event) => console.log('Opened:', event.messageId),
+    onClick: async (event) => console.log('Clicked:', event.url),
+    onComplaint: async (event) => console.log('Complaint:', event.recipient),
+    onUnsubscribe: async (event) => console.log('Unsubscribed:', event.recipient),
+    onAny: async (event) => console.log('Event:', event.type),
+  },
+  webhookSecrets: {
+    mailgun: process.env.MAILGUN_WEBHOOK_SECRET,
   },
 });
 
 await server.start();
 ```
 
-**Webhook endpoints for incoming emails:**
+This registers routes at:
+- `POST /webhooks/{ses,mailgun,sendgrid,mailchimp}/incoming`
+- `POST /webhooks/{ses,mailgun,sendgrid,mailchimp}/events`
+- `GET /track/open/:messageId`
+- `GET /track/click/:messageId`
+- `GET /health`
 
-| Provider | Endpoint |
-|----------|----------|
-| AWS SES | `POST /webhooks/ses/incoming` |
-| Mailgun | `POST /webhooks/mailgun/incoming` |
-| SendGrid | `POST /webhooks/sendgrid/incoming` |
-| Mailchimp | `POST /webhooks/mailchimp/incoming` |
-| Custom | `POST /webhooks/custom/incoming` |
+---
 
-### Reply Threading
+## Incoming Email & Conversation Threading
 
-Build conversation threads using `inReplyTo` and `references` from incoming emails:
+All incoming handlers provide `inReplyTo` and `references` fields for building conversation threads.
 
 ```typescript
-// When receiving a reply
-onIncomingEmail: async (email) => {
-  if (email.inReplyTo) {
-    // This is a reply — find the parent conversation
-    const parentEmail = await db.emails.findUnique({
-      where: { messageId: email.inReplyTo },
-    });
+import { createMailgunIncomingHandler } from 'omni-mailer/webhooks/mailgun';
 
-    if (parentEmail) {
-      // Add to existing conversation thread
-      await db.conversations.update({
-        where: { id: parentEmail.conversationId },
-        data: {
-          emails: { push: email.messageId },
-          lastReplyAt: email.timestamp,
-        },
+app.post('/hooks/incoming', createMailgunIncomingHandler({
+  onEmail: async (email) => {
+    // email.from        → 'user@example.com'
+    // email.to          → ['you@yourdomain.com']
+    // email.subject     → 'Re: Your order'
+    // email.text        → plain text body
+    // email.html        → HTML body
+    // email.messageId   → '<abc@example.com>'
+    // email.inReplyTo   → '<parent@example.com>'
+    // email.references  → ['<root@example.com>', '<parent@example.com>']
+    // email.timestamp   → Date
+    // email.attachments → [{ filename, contentType, size, url?, content? }]
+
+    if (email.inReplyTo) {
+      // Reply — find parent and add to thread
+      const parent = await db.emails.findUnique({
+        where: { messageId: email.inReplyTo },
+      });
+      if (parent) {
+        await db.conversations.update({
+          where: { id: parent.conversationId },
+          data: { emails: { push: email.messageId } },
+        });
+      }
+    } else {
+      // New conversation
+      await db.conversations.create({
+        data: { emails: [email.messageId], subject: email.subject },
       });
     }
-  } else {
-    // New conversation
-    await db.conversations.create({
-      data: {
-        emails: [email.messageId],
-        subject: email.subject,
-        startedAt: email.timestamp,
-      },
-    });
-  }
-},
+  },
+}));
 ```
 
 ---
 
-## Complete Working Examples
+## Complete Examples
 
 ### SES Full Example
 
-A complete, runnable example using AWS SES with tracking, attachments, and bulk sending.
-
 ```typescript
-import {
-  SESEmailClient,
-  WebhookServer,
-  type DeliveryEvent,
-  type BounceEvent,
-  type OpenEvent,
-  type ClickEvent,
-} from 'omni-mailer';
+import express from 'express';
+import { SESEmailClient } from 'omni-mailer';
+import { createSESEventHandler, createSESIncomingHandler } from 'omni-mailer/webhooks/ses';
+import { createOpenTrackingHandler, createClickTrackingHandler } from 'omni-mailer/webhooks/tracking';
 
-// ─── 1. Initialize SES Client ───────────────────────────
+const app = express();
+app.use(express.json());
 
 const ses = new SESEmailClient({
   provider: 'aws-ses',
@@ -707,155 +661,80 @@ const ses = new SESEmailClient({
   secretAccessKey: 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY',
 });
 
-// ─── 2. Enable Tracking ─────────────────────────────────
-
 ses.enableTracking({
-  baseUrl: 'https://mail-track.yourdomain.com',
+  baseUrl: 'https://yourdomain.com',
   trackOpens: true,
   trackClicks: true,
 });
 
-// ─── 3. Send a Single Email ─────────────────────────────
+app.post('/hooks/ses/events', createSESEventHandler({
+  onEvent: async (event) => {
+    switch (event.type) {
+      case 'delivered': console.log(`Delivered to ${event.recipient}`); break;
+      case 'bounced': console.log(`Bounced: ${event.recipient}`); break;
+      case 'opened': console.log(`Opened: ${event.messageId}`); break;
+      case 'clicked': console.log(`Clicked: ${event.messageId}`); break;
+      case 'complained': console.log(`Complaint: ${event.recipient}`); break;
+    }
+  },
+}));
 
-async function sendWelcomeEmail(userEmail: string, userName: string) {
-  const result = await ses.send({
+app.post('/hooks/ses/incoming', createSESIncomingHandler({
+  onEmail: async (email) => {
+    console.log(`From ${email.from}: ${email.subject}`);
+  },
+}));
+
+app.get('/track/open/:messageId', createOpenTrackingHandler({
+  onEvent: async (event) => console.log(`Open: ${event.messageId}`),
+}));
+
+app.get('/track/click/:messageId', createClickTrackingHandler({
+  onEvent: async (event) => console.log(`Click: ${event.messageId} → ${event.url}`),
+}));
+
+async function sendWelcome(userEmail: string, userName: string) {
+  return ses.send({
     from: { name: 'MyApp', address: 'welcome@yourdomain.com' },
     to: userEmail,
     subject: `Welcome, ${userName}!`,
     html: `
-      <html>
-        <body>
-          <h1>Welcome to MyApp, ${userName}!</h1>
-          <p>We're glad you're here.</p>
-          <a href="https://yourdomain.com/get-started">Get Started</a>
-          <br/><br/>
-          <img src="cid:logo" alt="MyApp" width="120" />
-        </body>
-      </html>
+      <h1>Welcome to MyApp, ${userName}!</h1>
+      <p>We're glad you're here.</p>
+      <a href="https://yourdomain.com/get-started">Get Started</a>
+      <img src="cid:logo" alt="MyApp" width="120" />
     `,
-    text: `Welcome to MyApp, ${userName}! Get started at https://yourdomain.com/get-started`,
     attachments: [
-      {
-        type: 'file',
-        filename: 'logo.png',
-        path: './assets/logo.png',
-        contentId: 'logo',
-        inline: true,
-      },
-      {
-        type: 'file',
-        filename: 'welcome-guide.pdf',
-        path: './assets/welcome-guide.pdf',
-      },
+      { type: 'file', filename: 'logo.png', path: './assets/logo.png', contentId: 'logo', inline: true },
+      { type: 'file', filename: 'welcome-guide.pdf', path: './assets/welcome-guide.pdf' },
     ],
-    tags: ['welcome', 'onboarding'],
-    metadata: { userId: '12345', campaign: 'welcome-flow' },
+    tags: ['welcome'],
+    metadata: { userId: '12345' },
   });
-
-  console.log('Email sent:', result.messageId);
-  return result;
 }
 
-// ─── 4. Send Bulk Emails ────────────────────────────────
-
-async function sendWeeklyNewsletter(subscribers: { email: string; name: string }[]) {
+async function sendNewsletter(subscribers: { email: string; name: string }[]) {
   const emails = subscribers.map((sub) => ({
-    from: { name: 'MyApp Newsletter', address: 'newsletter@yourdomain.com' },
+    from: { name: 'Newsletter', address: 'newsletter@yourdomain.com' },
     to: sub.email,
     subject: 'This Week at MyApp',
-    html: `
-      <html>
-        <body>
-          <h1>Hi ${sub.name}, here's your weekly update</h1>
-          <p>Check out what's new...</p>
-          <a href="https://yourdomain.com/blog">Read our blog</a>
-        </body>
-      </html>
-    `,
-    text: `Hi ${sub.name}, check out what's new at https://yourdomain.com/blog`,
+    html: `<h1>Hi ${sub.name}</h1><p>Here's your weekly update...</p>`,
     tags: ['newsletter'],
   }));
 
-  const result = await ses.sendBulk(emails, {
+  return ses.sendBulk(emails, {
     concurrency: 10,
     batchSize: 50,
     delayMs: 200,
     retryAttempts: 2,
-    onProgress: (p) => {
-      const pct = Math.round((p.sent / p.total) * 100);
-      console.log(`Newsletter: ${pct}% (${p.sent}/${p.total}), ${p.failed} failed`);
-    },
+    onProgress: (p) => console.log(`${p.sent}/${p.total}, ${p.failed} failed`),
   });
-
-  console.log(`Newsletter sent: ${result.successful}/${result.total} delivered`);
-  if (result.errors.length > 0) {
-    console.error('Failed emails:', result.errors.map((e) => e.error.message));
-  }
 }
 
-// ─── 5. Start Webhook Server for Tracking ───────────────
-
-async function startTrackingServer() {
-  const server = new WebhookServer({
-    port: 3000,
-    trackingConfig: {
-      baseUrl: 'https://mail-track.yourdomain.com',
-    },
-    trackingCallbacks: {
-      onDelivery: async (event: DeliveryEvent) => {
-        console.log(`[DELIVERED] ${event.recipient} — ${event.messageId}`);
-      },
-      onBounce: async (event: BounceEvent) => {
-        console.log(`[BOUNCED] ${event.recipient} — ${event.bounceType}: ${event.bounceReason}`);
-      },
-      onOpen: async (event: OpenEvent) => {
-        console.log(`[OPENED] ${event.recipient} — ${event.messageId}`);
-      },
-      onClick: async (event: ClickEvent) => {
-        console.log(`[CLICKED] ${event.recipient} — ${event.url}`);
-      },
-      onComplaint: async (event) => {
-        console.log(`[COMPLAINT] ${event.recipient}`);
-      },
-    },
-    webhookCallbacks: {
-      onIncomingEmail: async (email) => {
-        console.log(`[INCOMING] From: ${email.from}, Subject: ${email.subject}`);
-        if (email.inReplyTo) {
-          console.log(`  → Reply to: ${email.inReplyTo}`);
-        }
-      },
-      onError: async (err, provider) => {
-        console.error(`[ERROR] ${provider}: ${err.message}`);
-      },
-    },
-  });
-
-  await server.start();
-  console.log('Tracking & webhook server running on http://localhost:3000');
-  console.log('Endpoints:');
-  console.log('  POST /webhooks/ses/events    — SES tracking events (via SNS)');
-  console.log('  POST /webhooks/ses/incoming   — SES incoming emails');
-  console.log('  GET  /track/open/:id          — Open pixel');
-  console.log('  GET  /track/click/:id         — Click redirect');
-  console.log('  GET  /health                  — Health check');
-}
-
-// ─── 6. Run Everything ──────────────────────────────────
-
-async function main() {
-  await startTrackingServer();
-
-  await sendWelcomeEmail('newuser@example.com', 'Alice');
-
-  await sendWeeklyNewsletter([
-    { email: 'user1@example.com', name: 'Bob' },
-    { email: 'user2@example.com', name: 'Carol' },
-    { email: 'user3@example.com', name: 'Dave' },
-  ]);
-}
-
-main().catch(console.error);
+app.listen(3000, async () => {
+  console.log('Server running on http://localhost:3000');
+  await sendWelcome('newuser@example.com', 'Alice');
+});
 ```
 
 ---
@@ -863,148 +742,71 @@ main().catch(console.error);
 ### Mailgun Full Example
 
 ```typescript
-import {
-  MailgunEmailClient,
-  WebhookServer,
-  type ClickEvent,
-  type OpenEvent,
-} from 'omni-mailer';
+import express from 'express';
+import { MailgunEmailClient } from 'omni-mailer';
+import { createMailgunEventHandler, createMailgunIncomingHandler } from 'omni-mailer/webhooks/mailgun';
+import { createOpenTrackingHandler, createClickTrackingHandler } from 'omni-mailer/webhooks/tracking';
 
-// ─── 1. Initialize Mailgun Client ───────────────────────
+const app = express();
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 const mailgun = new MailgunEmailClient({
   provider: 'mailgun',
   apiKey: 'key-XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX',
   domain: 'mg.yourdomain.com',
-  // host: 'api.eu.mailgun.net',  // uncomment for EU region
 });
 
-// ─── 2. Enable Tracking ─────────────────────────────────
-
 mailgun.enableTracking({
-  baseUrl: 'https://mail-track.yourdomain.com',
+  baseUrl: 'https://yourdomain.com',
   trackOpens: true,
   trackClicks: true,
 });
 
-// ─── 3. Send a Single Email ─────────────────────────────
+app.post('/hooks/mailgun/events', createMailgunEventHandler({
+  onEvent: async (event) => {
+    console.log(`[${event.type}] ${event.recipient} — ${event.messageId}`);
+  },
+  secret: process.env.MAILGUN_WEBHOOK_SECRET,
+}));
 
-async function sendInvoiceEmail(customerEmail: string, invoiceId: string) {
-  const result = await mailgun.send({
+app.post('/hooks/mailgun/incoming', createMailgunIncomingHandler({
+  onEmail: async (email) => {
+    console.log(`Incoming: ${email.from} — ${email.subject}`);
+    if (email.inReplyTo) {
+      console.log(`Thread: reply to ${email.inReplyTo}`);
+    }
+  },
+  secret: process.env.MAILGUN_WEBHOOK_SECRET,
+}));
+
+app.get('/track/open/:messageId', createOpenTrackingHandler({
+  onEvent: async (event) => console.log(`Opened: ${event.messageId}`),
+}));
+
+app.get('/track/click/:messageId', createClickTrackingHandler({
+  onEvent: async (event) => console.log(`Clicked: ${event.messageId} → ${event.url}`),
+}));
+
+async function sendInvoice(customerEmail: string, invoiceId: string) {
+  return mailgun.send({
     from: { name: 'Billing', address: 'billing@yourdomain.com' },
     to: customerEmail,
     subject: `Invoice #${invoiceId}`,
-    html: `
-      <html>
-        <body>
-          <h2>Invoice #${invoiceId}</h2>
-          <p>Your invoice is attached. Pay online:</p>
-          <a href="https://yourdomain.com/pay/${invoiceId}">Pay Now</a>
-        </body>
-      </html>
-    `,
-    text: `Invoice #${invoiceId}\nPay at: https://yourdomain.com/pay/${invoiceId}`,
-    attachments: [
-      {
-        type: 'url',
-        filename: `invoice-${invoiceId}.pdf`,
-        url: `https://yourdomain.com/api/invoices/${invoiceId}/pdf`,
-      },
-    ],
-    tags: ['invoice', 'billing'],
-    metadata: { invoiceId, customerId: 'cust_123' },
+    html: `<h2>Invoice #${invoiceId}</h2><p><a href="https://yourdomain.com/pay/${invoiceId}">Pay Now</a></p>`,
+    attachments: [{
+      type: 'url',
+      filename: `invoice-${invoiceId}.pdf`,
+      url: `https://yourdomain.com/api/invoices/${invoiceId}/pdf`,
+    }],
+    tags: ['invoice'],
   });
-
-  console.log('Invoice sent:', result.messageId);
 }
 
-// ─── 4. Send Bulk Promotional Emails ────────────────────
-
-async function sendPromotion(users: { email: string; name: string; plan: string }[]) {
-  const emails = users.map((user) => ({
-    from: { name: 'MyApp', address: 'promo@yourdomain.com' },
-    to: user.email,
-    subject: `Special offer for ${user.plan} users!`,
-    html: `
-      <html>
-        <body>
-          <h1>Hey ${user.name}!</h1>
-          <p>As a valued ${user.plan} member, you get 20% off upgrades.</p>
-          <a href="https://yourdomain.com/upgrade?code=SAVE20">Claim Offer</a>
-        </body>
-      </html>
-    `,
-    tags: ['promotion', user.plan],
-    metadata: { campaign: 'upgrade-promo', plan: user.plan },
-  }));
-
-  const result = await mailgun.sendBulk(emails, {
-    concurrency: 5,
-    batchSize: 100,
-    retryAttempts: 2,
-    onProgress: (p) => console.log(`Promo: ${p.sent}/${p.total}`),
-  });
-
-  console.log(`Promo campaign: ${result.successful} sent, ${result.failed} failed`);
-}
-
-// ─── 5. Tracking & Conversation Server ──────────────────
-
-async function startServer() {
-  const server = new WebhookServer({
-    port: 3000,
-    trackingConfig: { baseUrl: 'https://mail-track.yourdomain.com' },
-    trackingCallbacks: {
-      onDelivery: async (event) => {
-        console.log(`[DELIVERED] ${event.recipient}`);
-      },
-      onOpen: async (event: OpenEvent) => {
-        console.log(`[OPENED] ${event.recipient} via ${event.userAgent}`);
-      },
-      onClick: async (event: ClickEvent) => {
-        console.log(`[CLICKED] ${event.recipient} → ${event.url}`);
-      },
-      onBounce: async (event) => {
-        console.log(`[BOUNCED] ${event.recipient}: ${event.bounceType}`);
-      },
-    },
-    webhookCallbacks: {
-      onIncomingEmail: async (email) => {
-        console.log(`[INCOMING] ${email.from}: ${email.subject}`);
-
-        // Conversation threading
-        if (email.inReplyTo) {
-          console.log(`  Thread: reply to ${email.inReplyTo}`);
-          console.log(`  Full thread: ${email.references?.join(' → ')}`);
-        }
-
-        // Handle attachments
-        if (email.attachments && email.attachments.length > 0) {
-          for (const att of email.attachments) {
-            console.log(`  Attachment: ${att.filename} (${att.contentType})`);
-          }
-        }
-      },
-      onError: async (err) => console.error('[ERROR]', err),
-    },
-  });
-
-  await server.start();
+app.listen(3000, async () => {
   console.log('Server running on http://localhost:3000');
-}
-
-// ─── 6. Run ─────────────────────────────────────────────
-
-async function main() {
-  await startServer();
-  await sendInvoiceEmail('customer@example.com', 'INV-2024-001');
-  await sendPromotion([
-    { email: 'alice@example.com', name: 'Alice', plan: 'pro' },
-    { email: 'bob@example.com', name: 'Bob', plan: 'starter' },
-  ]);
-}
-
-main().catch(console.error);
+  await sendInvoice('customer@example.com', 'INV-2024-001');
+});
 ```
 
 ---
@@ -1012,37 +814,16 @@ main().catch(console.error);
 ## Error Handling
 
 ```typescript
-import {
-  SESEmailClient,
-  EmailError,
-  ValidationError,
-  ProviderError,
-} from 'omni-mailer';
-
-const ses = new SESEmailClient({ /* config */ });
+import { EmailError, ValidationError, ProviderError } from 'omni-mailer';
 
 try {
-  await ses.send({
-    from: 'sender@yourdomain.com',
-    to: 'recipient@example.com',
-    subject: 'Test',
-    text: 'Hello',
-  });
+  await mailer.send({ /* ... */ });
 } catch (error) {
   if (error instanceof ValidationError) {
-    // Invalid input (missing fields, bad email format)
-    console.error('Validation failed:', error.message);
-    console.error('Field:', error.field);
-
+    console.error('Validation failed:', error.message, error.field);
   } else if (error instanceof ProviderError) {
-    // Provider-specific error (rate limit, auth failure, etc.)
-    console.error('Provider error:', error.message);
-    console.error('Provider:', error.provider);
-    console.error('Status:', error.statusCode);
-    console.error('Code:', error.providerCode);
-
+    console.error('Provider error:', error.message, error.provider, error.statusCode);
   } else if (error instanceof EmailError) {
-    // General email error
     console.error('Email error:', error.message);
   }
 }
@@ -1054,34 +835,62 @@ try {
 
 ### Email Clients
 
-All providers implement the same interface:
+All providers (`SESEmailClient`, `MailgunEmailClient`, `SendGridEmailClient`, `MailchimpEmailClient`, `ZohoEmailClient`) implement:
 
-| Method | Signature | Description |
-|--------|-----------|-------------|
-| `send` | `send(data: EmailData): Promise<SendResult>` | Send a single email |
-| `sendTemplated` | `sendTemplated(data: TemplatedEmailData): Promise<SendResult>` | Send using a provider template |
-| `sendBulk` | `sendBulk(emails: EmailData[], options?: BulkSendOptions): Promise<BulkSendResult>` | Send emails in bulk |
-| `enableTracking` | `enableTracking(config: TrackingConfig): void` | Enable open/click tracking |
+| Method | Signature |
+|--------|-----------|
+| `send` | `send(data: EmailData): Promise<SendResult>` |
+| `sendTemplated` | `sendTemplated(data: TemplatedEmailData): Promise<SendResult>` |
+| `sendBulk` | `sendBulk(emails: EmailData[], options?: BulkSendOptions): Promise<BulkSendResult>` |
+| `enableTracking` | `enableTracking(config: TrackingConfig): void` |
 
-### Webhook Server
+### Webhook Handler Factories
+
+Each returns `(req: Request, res: Response) => Promise<void>`:
+
+| Factory | Import Path | Options |
+|---------|------------|---------|
+| `createSESIncomingHandler` | `omni-mailer/webhooks/ses` | `IncomingHandlerOptions` |
+| `createSESEventHandler` | `omni-mailer/webhooks/ses` | `EventHandlerOptions` |
+| `createMailgunIncomingHandler` | `omni-mailer/webhooks/mailgun` | `MailgunIncomingHandlerOptions` |
+| `createMailgunEventHandler` | `omni-mailer/webhooks/mailgun` | `MailgunEventHandlerOptions` |
+| `createSendGridIncomingHandler` | `omni-mailer/webhooks/sendgrid` | `IncomingHandlerOptions` |
+| `createSendGridEventHandler` | `omni-mailer/webhooks/sendgrid` | `EventHandlerOptions` |
+| `createMailchimpIncomingHandler` | `omni-mailer/webhooks/mailchimp` | `IncomingHandlerOptions` |
+| `createMailchimpEventHandler` | `omni-mailer/webhooks/mailchimp` | `EventHandlerOptions` |
+| `createOpenTrackingHandler` | `omni-mailer/webhooks/tracking` | `OpenTrackingHandlerOptions` |
+| `createClickTrackingHandler` | `omni-mailer/webhooks/tracking` | `ClickTrackingHandlerOptions` |
+
+**Handler Options:**
+
+```typescript
+interface IncomingHandlerOptions {
+  onEmail: (email: IncomingEmail) => void | Promise<void>;
+  onError?: (error: Error) => void | Promise<void>;
+}
+
+interface EventHandlerOptions {
+  onEvent: (event: TrackingEventData) => void | Promise<void>;
+  onError?: (error: Error) => void | Promise<void>;
+}
+
+// Mailgun handlers add optional secret for HMAC-SHA256 verification
+interface MailgunIncomingHandlerOptions extends IncomingHandlerOptions { secret?: string; }
+interface MailgunEventHandlerOptions extends EventHandlerOptions { secret?: string; }
+
+interface OpenTrackingHandlerOptions { onEvent: (event: TrackingEventData) => void | Promise<void>; }
+interface ClickTrackingHandlerOptions { onEvent: (event: TrackingEventData) => void | Promise<void>; }
+```
+
+**Tracking Event Types:** `'delivered' | 'bounced' | 'opened' | 'clicked' | 'complained' | 'unsubscribed'`
+
+### WebhookServer
 
 | Method | Description |
 |--------|-------------|
 | `start()` | Start standalone Express server |
 | `stop()` | Stop the server |
-| `getApp()` | Get Express app instance (for mounting on existing server) |
-
-### Webhook Endpoints
-
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/webhooks/{provider}/incoming` | POST | Receive incoming emails |
-| `/webhooks/{provider}/events` | POST | Receive tracking events |
-| `/track/open/:messageId` | GET | Open tracking pixel |
-| `/track/click/:messageId` | GET | Click tracking redirect |
-| `/health` | GET | Health check |
-
-**Supported providers:** `ses`, `mailgun`, `sendgrid`, `mailchimp`, `custom`
+| `getApp()` | Get the Express app instance |
 
 ### ConfigValidator
 
@@ -1098,20 +907,13 @@ All providers implement the same interface:
 ## Publishing to npm
 
 ```bash
-# 1. Login to npm
 npm login
-
-# 2. Build the package
 npm run build
-
-# 3. Verify what will be published
 npm pack --dry-run
-
-# 4. Publish
 npm publish
 ```
 
-To publish under a scope (e.g., `@yourorg/omni-mailer`), update the `name` field in `package.json` and run:
+For scoped packages:
 
 ```bash
 npm publish --access public

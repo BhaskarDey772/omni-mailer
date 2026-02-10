@@ -1,9 +1,16 @@
-import * as crypto from 'crypto';
-import { Request, Response } from 'express';
-import { IncomingEmail, MailgunIncomingHandlerOptions, MailgunEventHandlerOptions, WebhookHandler } from '../types/webhook.types';
-import { DeliveryEvent, BounceEvent, OpenEvent, ClickEvent } from '../types/tracking.types';
+import * as crypto from 'node:crypto';
+import type { Request, Response } from 'express';
+import type { BounceEvent, ClickEvent, DeliveryEvent, OpenEvent } from '../types/tracking.types';
+import type {
+  IncomingEmail,
+  MailgunEventHandlerOptions,
+  MailgunIncomingHandlerOptions,
+  WebhookHandler,
+} from '../types/webhook.types';
 
-export function createMailgunIncomingHandler(options: MailgunIncomingHandlerOptions): WebhookHandler {
+export function createMailgunIncomingHandler(
+  options: MailgunIncomingHandlerOptions,
+): WebhookHandler {
   return async (req: Request, res: Response): Promise<void> => {
     try {
       if (options.secret) {
@@ -21,16 +28,14 @@ export function createMailgunIncomingHandler(options: MailgunIncomingHandlerOpti
       const email: IncomingEmail = {
         provider: 'mailgun',
         from: req.body.sender || req.body.from,
-        to: Array.isArray(req.body.recipient)
-          ? req.body.recipient
-          : [req.body.recipient],
+        to: Array.isArray(req.body.recipient) ? req.body.recipient : [req.body.recipient],
         subject: req.body.subject || '',
         text: req.body['body-plain'],
         html: req.body['body-html'],
         messageId: req.body['Message-Id'] || '',
         inReplyTo: req.body['In-Reply-To'],
         references: req.body.References?.split(' ').filter(Boolean),
-        timestamp: new Date(parseInt(req.body.timestamp) * 1000),
+        timestamp: new Date(parseInt(req.body.timestamp, 10) * 1000),
       };
 
       await options.onEmail(email);

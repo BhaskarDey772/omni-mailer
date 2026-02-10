@@ -37,8 +37,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AttachmentHandler = void 0;
-const fs = __importStar(require("fs/promises"));
-const path = __importStar(require("path"));
+const fs = __importStar(require("node:fs/promises"));
+const path = __importStar(require("node:path"));
 const axios_1 = __importDefault(require("axios"));
 const errors_1 = require("../errors");
 const MIME_TYPES = {
@@ -110,7 +110,7 @@ class AttachmentHandler {
         }
     }
     static async processAll(attachments) {
-        return Promise.all(attachments.map((a) => this.process(a)));
+        return Promise.all(attachments.map((a) => AttachmentHandler.process(a)));
     }
 }
 exports.AttachmentHandler = AttachmentHandler;

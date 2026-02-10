@@ -1,4 +1,4 @@
-import { AttachmentInput, ProcessedAttachment } from '../types';
+import type { AttachmentInput, ProcessedAttachment } from '../types';
 export declare class AttachmentHandler {
     static process(attachment: AttachmentInput): Promise<ProcessedAttachment>;
     static processAll(attachments: AttachmentInput[]): Promise<ProcessedAttachment[]>;

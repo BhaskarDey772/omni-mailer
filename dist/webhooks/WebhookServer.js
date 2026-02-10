@@ -5,10 +5,10 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.WebhookServer = void 0;
 const express_1 = __importDefault(require("express"));
-const ses_1 = require("./ses");
+const mailchimp_1 = require("./mailchimp");
 const mailgun_1 = require("./mailgun");
 const sendgrid_1 = require("./sendgrid");
-const mailchimp_1 = require("./mailchimp");
+const ses_1 = require("./ses");
 const tracking_1 = require("./tracking");
 class WebhookServer {
     constructor(options) {

@@ -1,6 +1,6 @@
 import { BaseEmailClient } from '../../core/BaseEmailClient';
-import { EmailData, TemplatedEmailData, SendResult } from '../../types';
-import { MailchimpConfig } from '../../types/provider.types';
+import type { EmailData, SendResult, TemplatedEmailData } from '../../types';
+import type { MailchimpConfig } from '../../types/provider.types';
 export declare class MailchimpEmailClient extends BaseEmailClient {
     private api;
     private apiKey;

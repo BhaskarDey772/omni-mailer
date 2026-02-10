@@ -4,8 +4,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.MailgunEmailClient = void 0;
-const mailgun_js_1 = __importDefault(require("mailgun.js"));
 const form_data_1 = __importDefault(require("form-data"));
+const mailgun_js_1 = __importDefault(require("mailgun.js"));
 const BaseEmailClient_1 = require("../../core/BaseEmailClient");
 const errors_1 = require("../../errors");
 class MailgunEmailClient extends BaseEmailClient_1.BaseEmailClient {
@@ -37,8 +37,12 @@ class MailgunEmailClient extends BaseEmailClient_1.BaseEmailClient {
                 ...(emailData.cc && { cc: this.toEmailStrings(emailData.cc) }),
                 ...(emailData.bcc && { bcc: this.toEmailStrings(emailData.bcc) }),
                 ...(emailData.tags && { 'o:tag': emailData.tags }),
-                ...(emailData.trackOpens !== undefined && { 'o:tracking-opens': emailData.trackOpens ? 'yes' : 'no' }),
-                ...(emailData.trackClicks !== undefined && { 'o:tracking-clicks': emailData.trackClicks ? 'yes' : 'no' }),
+                ...(emailData.trackOpens !== undefined && {
+                    'o:tracking-opens': emailData.trackOpens ? 'yes' : 'no',
+                }),
+                ...(emailData.trackClicks !== undefined && {
+                    'o:tracking-clicks': emailData.trackClicks ? 'yes' : 'no',
+                }),
             };
             if (emailData.headers) {
                 for (const [key, value] of Object.entries(emailData.headers)) {

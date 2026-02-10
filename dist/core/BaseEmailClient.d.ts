@@ -1,6 +1,6 @@
-import { EmailData, TemplatedEmailData, SendResult, BulkSendResult, BulkSendOptions, EmailProvider, EmailRecipient, EmailRecipients, AttachmentInput, ProcessedAttachment } from '../types';
 import { TrackingManager } from '../tracking/TrackingManager';
-import { TrackingConfig } from '../types/tracking.types';
+import type { AttachmentInput, BulkSendOptions, BulkSendResult, EmailData, EmailProvider, EmailRecipient, EmailRecipients, ProcessedAttachment, SendResult, TemplatedEmailData } from '../types';
+import type { TrackingConfig } from '../types/tracking.types';
 export declare abstract class BaseEmailClient {
     readonly provider: EmailProvider;
     protected trackingManager?: TrackingManager;

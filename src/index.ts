@@ -1,63 +1,60 @@
-export { SESEmailClient } from './providers/ses/SESEmailClient';
+export { AttachmentHandler } from './attachments/AttachmentHandler';
+export { BaseEmailClient } from './core/BaseEmailClient';
+export { EmailError, ProviderError, ValidationError, WebhookError } from './errors';
+export { MailchimpEmailClient } from './providers/mailchimp/MailchimpEmailClient';
 export { MailgunEmailClient } from './providers/mailgun/MailgunEmailClient';
 export { SendGridEmailClient } from './providers/sendgrid/SendGridEmailClient';
-export { MailchimpEmailClient } from './providers/mailchimp/MailchimpEmailClient';
+export { SESEmailClient } from './providers/ses/SESEmailClient';
 export { ZohoEmailClient } from './providers/zoho/ZohoEmailClient';
-export { BaseEmailClient } from './core/BaseEmailClient';
-
-export { createSESIncomingHandler, createSESEventHandler } from './webhooks/ses';
-export { createMailgunIncomingHandler, createMailgunEventHandler } from './webhooks/mailgun';
-export { createSendGridIncomingHandler, createSendGridEventHandler } from './webhooks/sendgrid';
-export { createMailchimpIncomingHandler, createMailchimpEventHandler } from './webhooks/mailchimp';
-export { createOpenTrackingHandler, createClickTrackingHandler } from './webhooks/tracking';
-export { WebhookServer } from './webhooks/WebhookServer';
-
 export { TrackingManager } from './tracking/TrackingManager';
-export { AttachmentHandler } from './attachments/AttachmentHandler';
-export { ConfigValidator } from './utils/ConfigValidator';
-export { EmailError, ValidationError, ProviderError, WebhookError } from './errors';
-
 export type {
-  EmailProvider,
+  AttachmentInput,
+  BaseProviderConfig,
+  BounceEvent,
+  BufferAttachmentInput,
+  BulkProgress,
+  BulkSendOptions,
+  BulkSendResult,
+  ClickEvent,
+  ClickTrackingHandlerOptions,
+  DeliveryEvent,
   EmailAddress,
+  EmailData,
+  EmailProvider,
   EmailRecipient,
   EmailRecipients,
-  EmailData,
-  TemplatedEmailData,
-  SendResult,
-  BulkSendOptions,
-  BulkProgress,
-  BulkSendResult,
-  AttachmentInput,
+  EventHandlerOptions,
   FileAttachmentInput,
-  BufferAttachmentInput,
-  UrlAttachmentInput,
-  ProcessedAttachment,
-  BaseProviderConfig,
-  SESConfig,
-  MailgunConfig,
-  SendGridConfig,
+  IncomingAttachment,
+  IncomingEmail,
+  IncomingHandlerOptions,
   MailchimpConfig,
-  ZohoConfig,
-  ProviderConfig,
-  TrackingEventType,
-  TrackingEvent,
-  DeliveryEvent,
-  BounceEvent,
+  MailgunConfig,
+  MailgunEventHandlerOptions,
+  MailgunIncomingHandlerOptions,
   OpenEvent,
-  ClickEvent,
-  TrackingEventData,
+  OpenTrackingHandlerOptions,
+  ProcessedAttachment,
+  ProviderConfig,
+  SESConfig,
+  SendGridConfig,
+  SendResult,
+  TemplatedEmailData,
   TrackingCallbacks,
   TrackingConfig,
-  WebhookHandler,
-  IncomingHandlerOptions,
-  EventHandlerOptions,
-  MailgunIncomingHandlerOptions,
-  MailgunEventHandlerOptions,
-  OpenTrackingHandlerOptions,
-  ClickTrackingHandlerOptions,
-  IncomingEmail,
-  IncomingAttachment,
+  TrackingEvent,
+  TrackingEventData,
+  TrackingEventType,
+  UrlAttachmentInput,
   WebhookCallbacks,
+  WebhookHandler,
   WebhookServerOptions,
+  ZohoConfig,
 } from './types';
+export { ConfigValidator } from './utils/ConfigValidator';
+export { createMailchimpEventHandler, createMailchimpIncomingHandler } from './webhooks/mailchimp';
+export { createMailgunEventHandler, createMailgunIncomingHandler } from './webhooks/mailgun';
+export { createSendGridEventHandler, createSendGridIncomingHandler } from './webhooks/sendgrid';
+export { createSESEventHandler, createSESIncomingHandler } from './webhooks/ses';
+export { createClickTrackingHandler, createOpenTrackingHandler } from './webhooks/tracking';
+export { WebhookServer } from './webhooks/WebhookServer';

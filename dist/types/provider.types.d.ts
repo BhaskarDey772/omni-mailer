@@ -1,4 +1,4 @@
-import { EmailProvider } from './core.types';
+import type { EmailProvider } from './core.types';
 export interface BaseProviderConfig {
     provider: EmailProvider;
     timeout?: number;

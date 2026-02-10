@@ -1,13 +1,21 @@
-import express, { Express } from 'express';
-import http from 'http';
-import { WebhookServerOptions, WebhookCallbacks } from '../types/webhook.types';
-import { TrackingCallbacks, TrackingEventData, DeliveryEvent, BounceEvent, OpenEvent, ClickEvent, TrackingEvent } from '../types/tracking.types';
-import { EmailProvider } from '../types/core.types';
-import { createSESIncomingHandler, createSESEventHandler } from './ses';
-import { createMailgunIncomingHandler, createMailgunEventHandler } from './mailgun';
-import { createSendGridIncomingHandler, createSendGridEventHandler } from './sendgrid';
-import { createMailchimpIncomingHandler, createMailchimpEventHandler } from './mailchimp';
-import { createOpenTrackingHandler, createClickTrackingHandler } from './tracking';
+import type http from 'node:http';
+import express, { type Express } from 'express';
+import type { EmailProvider } from '../types/core.types';
+import type {
+  BounceEvent,
+  ClickEvent,
+  DeliveryEvent,
+  OpenEvent,
+  TrackingCallbacks,
+  TrackingEvent,
+  TrackingEventData,
+} from '../types/tracking.types';
+import type { WebhookCallbacks, WebhookServerOptions } from '../types/webhook.types';
+import { createMailchimpEventHandler, createMailchimpIncomingHandler } from './mailchimp';
+import { createMailgunEventHandler, createMailgunIncomingHandler } from './mailgun';
+import { createSendGridEventHandler, createSendGridIncomingHandler } from './sendgrid';
+import { createSESEventHandler, createSESIncomingHandler } from './ses';
+import { createClickTrackingHandler, createOpenTrackingHandler } from './tracking';
 
 export class WebhookServer {
   private app: Express;
@@ -77,18 +85,30 @@ export class WebhookServer {
     });
 
     this.app.post(`${bp}/ses/incoming`, createSESIncomingHandler(incomingOpts('aws-ses')));
-    this.app.post(`${bp}/mailgun/incoming`, createMailgunIncomingHandler({
-      ...incomingOpts('mailgun'),
-      secret: this.options.webhookSecrets?.mailgun,
-    }));
-    this.app.post(`${bp}/sendgrid/incoming`, createSendGridIncomingHandler(incomingOpts('sendgrid')));
-    this.app.post(`${bp}/mailchimp/incoming`, createMailchimpIncomingHandler(incomingOpts('mailchimp')));
+    this.app.post(
+      `${bp}/mailgun/incoming`,
+      createMailgunIncomingHandler({
+        ...incomingOpts('mailgun'),
+        secret: this.options.webhookSecrets?.mailgun,
+      }),
+    );
+    this.app.post(
+      `${bp}/sendgrid/incoming`,
+      createSendGridIncomingHandler(incomingOpts('sendgrid')),
+    );
+    this.app.post(
+      `${bp}/mailchimp/incoming`,
+      createMailchimpIncomingHandler(incomingOpts('mailchimp')),
+    );
 
     this.app.post(`${bp}/ses/events`, createSESEventHandler(eventOpts('aws-ses')));
-    this.app.post(`${bp}/mailgun/events`, createMailgunEventHandler({
-      ...eventOpts('mailgun'),
-      secret: this.options.webhookSecrets?.mailgun,
-    }));
+    this.app.post(
+      `${bp}/mailgun/events`,
+      createMailgunEventHandler({
+        ...eventOpts('mailgun'),
+        secret: this.options.webhookSecrets?.mailgun,
+      }),
+    );
     this.app.post(`${bp}/sendgrid/events`, createSendGridEventHandler(eventOpts('sendgrid')));
     this.app.post(`${bp}/mailchimp/events`, createMailchimpEventHandler(eventOpts('mailchimp')));
 

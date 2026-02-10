@@ -1,4 +1,4 @@
-import { EmailProvider } from './core.types';
+import type { EmailProvider } from './core.types';
 export type TrackingEventType = 'delivered' | 'bounced' | 'failed' | 'opened' | 'clicked' | 'complained' | 'unsubscribed';
 export interface TrackingEvent {
     type: TrackingEventType;

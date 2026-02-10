@@ -1,4 +1,4 @@
-import { TrackingConfig } from '../types/tracking.types';
+import type { TrackingConfig } from '../types/tracking.types';
 
 export class TrackingManager {
   private baseUrl: string;
@@ -29,7 +29,7 @@ export class TrackingManager {
 
         const trackUrl = `${this.baseUrl}/track/click/${encodeURIComponent(messageId)}?url=${encodeURIComponent(url)}`;
         return `<a ${before}href="${trackUrl}"${after}>`;
-      }
+      },
     );
   }
 }

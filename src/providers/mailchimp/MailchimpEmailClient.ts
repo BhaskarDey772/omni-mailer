@@ -1,14 +1,8 @@
-import axios, { AxiosInstance } from 'axios';
+import axios, { type AxiosInstance } from 'axios';
 import { BaseEmailClient } from '../../core/BaseEmailClient';
-import {
-  EmailData,
-  TemplatedEmailData,
-  SendResult,
-  BulkSendResult,
-  BulkSendOptions,
-} from '../../types';
-import { MailchimpConfig } from '../../types/provider.types';
 import { ValidationError } from '../../errors';
+import type { EmailData, SendResult, TemplatedEmailData } from '../../types';
+import type { MailchimpConfig } from '../../types/provider.types';
 
 export class MailchimpEmailClient extends BaseEmailClient {
   private api: AxiosInstance;

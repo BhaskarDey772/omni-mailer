@@ -95,7 +95,7 @@ class ZohoEmailClient extends BaseEmailClient_1.BaseEmailClient {
             };
         }
     }
-    async sendTemplated(emailData) {
+    async sendTemplated(_emailData) {
         return {
             success: false,
             error: 'Zoho does not support server-side templates. Render the template to HTML and use send() instead.',

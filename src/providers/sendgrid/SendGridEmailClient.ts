@@ -1,14 +1,14 @@
 import sgMail from '@sendgrid/mail';
 import { BaseEmailClient } from '../../core/BaseEmailClient';
-import {
-  EmailData,
-  TemplatedEmailData,
-  SendResult,
-  BulkSendResult,
-  BulkSendOptions,
-} from '../../types';
-import { SendGridConfig } from '../../types/provider.types';
 import { ValidationError } from '../../errors';
+import type {
+  BulkSendOptions,
+  BulkSendResult,
+  EmailData,
+  SendResult,
+  TemplatedEmailData,
+} from '../../types';
+import type { SendGridConfig } from '../../types/provider.types';
 
 export class SendGridEmailClient extends BaseEmailClient {
   constructor(config: SendGridConfig) {
@@ -67,8 +67,7 @@ export class SendGridEmailClient extends BaseEmailClient {
         provider: 'sendgrid',
       };
     } catch (error: any) {
-      const errorMessage =
-        error.response?.body?.errors?.[0]?.message || error.message;
+      const errorMessage = error.response?.body?.errors?.[0]?.message || error.message;
       return {
         success: false,
         error: errorMessage,
@@ -110,8 +109,7 @@ export class SendGridEmailClient extends BaseEmailClient {
         provider: 'sendgrid',
       };
     } catch (error: any) {
-      const errorMessage =
-        error.response?.body?.errors?.[0]?.message || error.message;
+      const errorMessage = error.response?.body?.errors?.[0]?.message || error.message;
       return {
         success: false,
         error: errorMessage,

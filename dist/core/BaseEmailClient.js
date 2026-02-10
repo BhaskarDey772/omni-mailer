@@ -45,13 +45,13 @@ class BaseEmailClient {
             if (lastResult.success)
                 return lastResult;
             if (attempt < maxRetries) {
-                await this.delay(Math.pow(2, attempt) * 1000);
+                await this.delay(2 ** attempt * 1000);
             }
         }
         return lastResult;
     }
     applyTracking(html, emailData) {
-        if (!this.trackingManager || !html)
+        if (!(this.trackingManager && html))
             return html;
         let tracked = html;
         if (emailData.trackOpens !== false) {

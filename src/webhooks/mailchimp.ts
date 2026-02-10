@@ -1,6 +1,11 @@
-import { Request, Response } from 'express';
-import { IncomingEmail, IncomingHandlerOptions, EventHandlerOptions, WebhookHandler } from '../types/webhook.types';
-import { DeliveryEvent, BounceEvent, OpenEvent, ClickEvent } from '../types/tracking.types';
+import type { Request, Response } from 'express';
+import type { BounceEvent, ClickEvent, DeliveryEvent, OpenEvent } from '../types/tracking.types';
+import type {
+  EventHandlerOptions,
+  IncomingEmail,
+  IncomingHandlerOptions,
+  WebhookHandler,
+} from '../types/webhook.types';
 
 export function createMailchimpIncomingHandler(options: IncomingHandlerOptions): WebhookHandler {
   return async (req: Request, res: Response): Promise<void> => {
@@ -13,9 +18,7 @@ export function createMailchimpIncomingHandler(options: IncomingHandlerOptions):
         text: req.body.text || req.body.msg?.text,
         html: req.body.html || req.body.msg?.html,
         messageId: req.body.msg?._id || '',
-        timestamp: req.body.ts
-          ? new Date(req.body.ts * 1000)
-          : new Date(),
+        timestamp: req.body.ts ? new Date(req.body.ts * 1000) : new Date(),
       };
 
       await options.onEmail(email);

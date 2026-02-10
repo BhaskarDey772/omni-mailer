@@ -1,20 +1,13 @@
 import {
   SESClient,
   SendEmailCommand,
-  SendTemplatedEmailCommand,
   SendRawEmailCommand,
+  SendTemplatedEmailCommand,
 } from '@aws-sdk/client-ses';
 import { BaseEmailClient } from '../../core/BaseEmailClient';
-import {
-  EmailData,
-  TemplatedEmailData,
-  SendResult,
-  BulkSendResult,
-  BulkSendOptions,
-  ProcessedAttachment,
-} from '../../types';
-import { SESConfig } from '../../types/provider.types';
 import { ValidationError } from '../../errors';
+import type { EmailData, ProcessedAttachment, SendResult, TemplatedEmailData } from '../../types';
+import type { SESConfig } from '../../types/provider.types';
 
 export class SESEmailClient extends BaseEmailClient {
   private client: SESClient;
@@ -23,7 +16,8 @@ export class SESEmailClient extends BaseEmailClient {
     super('aws-ses');
 
     if (!config.region) throw new ValidationError('SES region is required', 'region');
-    if (!config.accessKeyId) throw new ValidationError('SES accessKeyId is required', 'accessKeyId');
+    if (!config.accessKeyId)
+      throw new ValidationError('SES accessKeyId is required', 'accessKeyId');
     if (!config.secretAccessKey)
       throw new ValidationError('SES secretAccessKey is required', 'secretAccessKey');
 
@@ -113,7 +107,6 @@ export class SESEmailClient extends BaseEmailClient {
     }
   }
 
-
   private async sendRaw(emailData: EmailData): Promise<SendResult> {
     try {
       const attachments = await this.processAttachments(emailData.attachments);
@@ -123,7 +116,7 @@ export class SESEmailClient extends BaseEmailClient {
       const response = await this.client.send(
         new SendRawEmailCommand({
           RawMessage: { Data: Buffer.from(rawMessage) },
-        })
+        }),
       );
 
       return {
@@ -140,11 +133,10 @@ export class SESEmailClient extends BaseEmailClient {
     }
   }
 
-
   private buildMimeMessage(
     emailData: EmailData,
     html: string | undefined,
-    attachments: ProcessedAttachment[]
+    attachments: ProcessedAttachment[],
   ): string {
     const boundary = `----=_Part_${Date.now()}_${Math.random().toString(36).slice(2)}`;
     const mixedBoundary = `----=_Mixed_${Date.now()}_${Math.random().toString(36).slice(2)}`;
@@ -197,9 +189,7 @@ export class SESEmailClient extends BaseEmailClient {
     for (const att of attachments) {
       lines.push(`--${mixedBoundary}`);
       const disposition = att.inline ? 'inline' : 'attachment';
-      lines.push(
-        `Content-Type: ${att.contentType}; name="${att.filename}"`
-      );
+      lines.push(`Content-Type: ${att.contentType}; name="${att.filename}"`);
       lines.push(`Content-Disposition: ${disposition}; filename="${att.filename}"`);
       lines.push('Content-Transfer-Encoding: base64');
       if (att.contentId) {

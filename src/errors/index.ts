@@ -1,1 +1,1 @@
-export { EmailError, ValidationError, ProviderError, WebhookError } from './EmailError';
+export { EmailError, ProviderError, ValidationError, WebhookError } from './EmailError';

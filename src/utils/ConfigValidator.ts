@@ -1,12 +1,12 @@
-import {
-  SESConfig,
-  MailgunConfig,
-  SendGridConfig,
+import type { EmailProvider } from '../types/core.types';
+import type {
   MailchimpConfig,
-  ZohoConfig,
+  MailgunConfig,
   ProviderConfig,
+  SESConfig,
+  SendGridConfig,
+  ZohoConfig,
 } from '../types/provider.types';
-import { EmailProvider } from '../types/core.types';
 
 export class ConfigValidator {
   static fromEnv(provider: EmailProvider): ProviderConfig {

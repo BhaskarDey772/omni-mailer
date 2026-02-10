@@ -1,4 +1,4 @@
-import { EmailProvider } from './core.types';
+import type { EmailProvider } from './core.types';
 
 export interface BaseProviderConfig {
   provider: EmailProvider;
@@ -40,4 +40,9 @@ export interface ZohoConfig extends BaseProviderConfig {
   secure?: boolean;
 }
 
-export type ProviderConfig = SESConfig | MailgunConfig | SendGridConfig | MailchimpConfig | ZohoConfig;
+export type ProviderConfig =
+  | SESConfig
+  | MailgunConfig
+  | SendGridConfig
+  | MailchimpConfig
+  | ZohoConfig;

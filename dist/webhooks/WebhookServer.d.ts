@@ -1,5 +1,5 @@
-import { Express } from 'express';
-import { WebhookServerOptions } from '../types/webhook.types';
+import { type Express } from 'express';
+import type { WebhookServerOptions } from '../types/webhook.types';
 export declare class WebhookServer {
     private options;
     private app;

@@ -35,7 +35,7 @@ var __importStar = (this && this.__importStar) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createMailgunIncomingHandler = createMailgunIncomingHandler;
 exports.createMailgunEventHandler = createMailgunEventHandler;
-const crypto = __importStar(require("crypto"));
+const crypto = __importStar(require("node:crypto"));
 function createMailgunIncomingHandler(options) {
     return async (req, res) => {
         try {
@@ -53,16 +53,14 @@ function createMailgunIncomingHandler(options) {
             const email = {
                 provider: 'mailgun',
                 from: req.body.sender || req.body.from,
-                to: Array.isArray(req.body.recipient)
-                    ? req.body.recipient
-                    : [req.body.recipient],
+                to: Array.isArray(req.body.recipient) ? req.body.recipient : [req.body.recipient],
                 subject: req.body.subject || '',
                 text: req.body['body-plain'],
                 html: req.body['body-html'],
                 messageId: req.body['Message-Id'] || '',
                 inReplyTo: req.body['In-Reply-To'],
                 references: req.body.References?.split(' ').filter(Boolean),
-                timestamp: new Date(parseInt(req.body.timestamp) * 1000),
+                timestamp: new Date(parseInt(req.body.timestamp, 10) * 1000),
             };
             await options.onEmail(email);
             res.status(200).send('OK');

@@ -1,12 +1,8 @@
 import * as nodemailer from 'nodemailer';
 import { BaseEmailClient } from '../../core/BaseEmailClient';
-import {
-  EmailData,
-  TemplatedEmailData,
-  SendResult,
-} from '../../types';
-import { ZohoConfig } from '../../types/provider.types';
 import { ValidationError } from '../../errors';
+import type { EmailData, SendResult, TemplatedEmailData } from '../../types';
+import type { ZohoConfig } from '../../types/provider.types';
 
 export class ZohoEmailClient extends BaseEmailClient {
   private transporter: nodemailer.Transporter;
@@ -73,7 +69,7 @@ export class ZohoEmailClient extends BaseEmailClient {
     }
   }
 
-  async sendTemplated(emailData: TemplatedEmailData): Promise<SendResult> {
+  async sendTemplated(_emailData: TemplatedEmailData): Promise<SendResult> {
     return {
       success: false,
       error:

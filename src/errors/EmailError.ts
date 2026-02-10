@@ -1,4 +1,4 @@
-import { EmailProvider } from '../types';
+import type { EmailProvider } from '../types';
 
 export class EmailError extends Error {
   public readonly provider: EmailProvider;
@@ -30,7 +30,7 @@ export class ProviderError extends EmailError {
     message: string,
     provider: EmailProvider,
     httpStatus?: number,
-    providerCode?: string
+    providerCode?: string,
   ) {
     super(message, provider, 'PROVIDER_ERROR');
     this.name = 'ProviderError';

@@ -1,18 +1,18 @@
-import {
-  EmailData,
-  TemplatedEmailData,
-  SendResult,
-  BulkSendResult,
+import { AttachmentHandler } from '../attachments/AttachmentHandler';
+import { TrackingManager } from '../tracking/TrackingManager';
+import type {
+  AttachmentInput,
   BulkSendOptions,
+  BulkSendResult,
+  EmailData,
   EmailProvider,
   EmailRecipient,
   EmailRecipients,
-  AttachmentInput,
   ProcessedAttachment,
+  SendResult,
+  TemplatedEmailData,
 } from '../types';
-import { AttachmentHandler } from '../attachments/AttachmentHandler';
-import { TrackingManager } from '../tracking/TrackingManager';
-import { TrackingConfig } from '../types/tracking.types';
+import type { TrackingConfig } from '../types/tracking.types';
 
 export abstract class BaseEmailClient {
   public readonly provider: EmailProvider;
@@ -22,17 +22,13 @@ export abstract class BaseEmailClient {
     this.provider = provider;
   }
 
-
   enableTracking(config: TrackingConfig): void {
     this.trackingManager = new TrackingManager(config);
   }
 
-
   abstract send(emailData: EmailData): Promise<SendResult>;
 
-
   abstract sendTemplated(emailData: TemplatedEmailData): Promise<SendResult>;
-
 
   async sendBulk(emails: EmailData[], options: BulkSendOptions = {}): Promise<BulkSendResult> {
     const { concurrency = 5, delayMs = 100, retryAttempts = 0, onProgress } = options;
@@ -42,7 +38,7 @@ export abstract class BaseEmailClient {
     for (let i = 0; i < emails.length; i += concurrency) {
       const batch = emails.slice(i, i + concurrency);
       const batchResults = await Promise.all(
-        batch.map((email) => this.sendWithRetry(email, retryAttempts))
+        batch.map((email) => this.sendWithRetry(email, retryAttempts)),
       );
       results.push(...batchResults);
 
@@ -69,7 +65,6 @@ export abstract class BaseEmailClient {
     };
   }
 
-
   protected async sendWithRetry(emailData: EmailData, maxRetries: number): Promise<SendResult> {
     let lastResult: SendResult | undefined;
 
@@ -78,16 +73,15 @@ export abstract class BaseEmailClient {
       if (lastResult.success) return lastResult;
 
       if (attempt < maxRetries) {
-        await this.delay(Math.pow(2, attempt) * 1000);
+        await this.delay(2 ** attempt * 1000);
       }
     }
 
     return lastResult!;
   }
 
-
   protected applyTracking(html: string, emailData: EmailData): string {
-    if (!this.trackingManager || !html) return html;
+    if (!(this.trackingManager && html)) return html;
 
     let tracked = html;
     if (emailData.trackOpens !== false) {
@@ -99,20 +93,17 @@ export abstract class BaseEmailClient {
     return tracked;
   }
 
-
   protected async processAttachments(
-    attachments?: AttachmentInput[]
+    attachments?: AttachmentInput[],
   ): Promise<ProcessedAttachment[]> {
     if (!attachments || attachments.length === 0) return [];
     return AttachmentHandler.processAll(attachments);
   }
 
-
   protected toEmailString(recipient: EmailRecipient): string {
     if (typeof recipient === 'string') return recipient;
     return recipient.name ? `${recipient.name} <${recipient.email}>` : recipient.email;
   }
-
 
   protected toEmailStrings(recipients: EmailRecipients): string[] {
     if (Array.isArray(recipients)) {
@@ -121,12 +112,10 @@ export abstract class BaseEmailClient {
     return [this.toEmailString(recipients)];
   }
 
-
   protected toRawEmail(recipient: EmailRecipient): string {
     if (typeof recipient === 'string') return recipient;
     return recipient.email;
   }
-
 
   protected toRawEmails(recipients: EmailRecipients): string[] {
     if (Array.isArray(recipients)) {
